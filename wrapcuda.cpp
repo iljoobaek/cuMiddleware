@@ -4,14 +4,23 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <execinfo.h>
+#include <unistd.h>    // getpid()
+#include <signal.h>    // raise(), SIGSTP
+#include <stdlib.h>    // exit()
+#include <sys/types.h> // pid_t
 
 #include <vector_types.h> // dim3
 #include <driver_types.h> // cudaError_t
 #include "wrapcuda.h"
+#include "wrapcublas.h"   //cublas interposed fn's
+#include "wraputil.h"     // queue_job_to_server
+#include "mid_structs.h"  // job_t
+#include "mid_common.h"  // JOB_MEM_NAME
+#include "mid_queue.h" // *queue_*()
 
+// Keep copy of global_jobs_q
+extern job_t *global_jobs_q = NULL;
+extern int jobs_q_fd = -1;
 
 // For interposing dlsym(). See elf/dl-libc.c for the internal dlsym interface function
 // For interposing dlopen(). Sell elf/dl-lib.c for the internal dlopen_mode interface function
@@ -71,9 +80,9 @@ to retrieve real cuLaunchKernel failed! err: %s\n", error);
 		}
 		return (void*)(&cuLaunchKernel);
 	}
-	//else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuMemFree)) == 0) {
-	//    return (void*)(&cuMemFree);
-	//}
+	else if (strcmp(symbol, CUDA_SYMBOL_STRING(cublasSgemm_v2)) == 0) {
+	    return (void*)(&cublasSgemm_v2);
+	}
 	////else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuCtxGetCurrent)) == 0) {
 	////    return (void*)(&cuCtxGetCurrent);
 	////}
@@ -135,6 +144,30 @@ extern "C"
 		// https://devtalk.nvidia.com/default/topic/821920/how-to-get-a-kernel-functions-name-through-its-pointer-/
 		const char *kern_name = HACK_GET_KERN_NAME(f);	
 		fprintf(stderr, "Retrieved kernel name from CUfunction f, %s\n", kern_name);
+
+		// Next, init global memory mapping for global jobs queue
+		if (!global_jobs_q)
+		{
+			int res;
+			if ((res = mmap_global_jobs_queue(&jobs_q_fd, (void**)&global_jobs_q)) < 0)
+			{
+				fprintf(stderr, "Failed to mmap global jobs queue!\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		// Queue job to server
+		int res;
+		if ((res = queue_job_to_server(getpid(), kern_name, global_jobs_q)) < 0)
+		{
+			fprintf(stderr, "Failed to queue job to server!\n");
+			exit(EXIT_FAILURE);
+		}
+		
+		// Pause this thread, hopefully will get killed by middleware
+		fprintf(stderr, "Tensorflow thread raising SIGSTOP\n");
+		raise(SIGSTOP);
+		fprintf(stderr, "Tensorflow thread woke up! Continuing ...\n");
 
 		return realCLK_dr(f, 
 							gridDimX, gridDimY, gridDimZ,

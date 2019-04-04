@@ -18,9 +18,16 @@
 #include "mid_common.h"  // JOB_MEM_NAME
 #include "mid_queue.h" // *queue_*()
 
+/* We want to interpose using LD_PRELOAD version 2 of cuBLAS API, so 
+ * we DON'T include cublas.h
+ */
+// Note: v2 function declarations are also in cublas_api.h, but they won't bind 
+// those in this file
+#include <cublas_api.h>
+
 // Keep copy of global_jobs_q
-extern job_t *global_jobs_q = NULL;
-extern int jobs_q_fd = -1;
+static job_t *global_jobs_q = NULL;
+static int jobs_q_fd = -1;
 
 // For interposing dlsym(). See elf/dl-libc.c for the internal dlsym interface function
 // For interposing dlopen(). Sell elf/dl-lib.c for the internal dlopen_mode interface function
@@ -175,5 +182,90 @@ extern "C"
 							sharedMemBytes, hStream, kernelParams,
 							extra);
 	}
+
+	/* cuBLAS API interposition 
+ 	 * Intercepting these functions allows
+	 * our middleware to get to run these functions within its own address-space.
+	 */
+	/* TODO: How handle cublas handle creation/destruction */
+	cublasStatus_t cublasCreate /*_v2*/ (cublasHandle_t *handle)
+	{
+		return CUBLAS_STATUS_EXECUTION_FAILED;	
+	}
+	cublasStatus_t cublasDestroy /*_v2*/ (cublasHandle_t handle)
+	{
+		return CUBLAS_STATUS_EXECUTION_FAILED;	
+	}
+
+/* cuBLAS interposed functions */
+#define GENERATE_CUBLAS_INTERCEPT(fn_str, funcname, params, ...)   \
+		cublasStatus_t funcname params                                    \
+		{                                                                   \
+			/* TODO wrap each function? to send to middleware?*/ \
+			/*(__VA_ARGS__);*/                          \
+			static void *real_fn = (void*)real_dlsym(RTLD_NEXT, CUDA_SYMBOL_STRING(funcname));\
+			fprintf(stderr, "Caught %s (CUBLAS API)\n", fn_str); \
+			/* Next, ensure global memory mapping is init for global jobs queue */\
+			if (!global_jobs_q) \
+			{ \
+				int res;\
+				if ((res = mmap_global_jobs_queue(&jobs_q_fd, (void**)&global_jobs_q)) < 0)\
+				{\
+					fprintf(stderr, "Failed to mmap global jobs queue!\n");\
+					exit(EXIT_FAILURE);\
+				}\
+			}\
+			/* Queue job to server */\
+			int res;\
+			if ((res = queue_job_to_server(getpid(), fn_str, global_jobs_q)) < 0) \
+			{\
+				fprintf(stderr, "Failed to queue job to server!\n");\
+				exit(EXIT_FAILURE);\
+			}\
+			/* Pause this thread, wait to be continued by middleware */ \
+			fprintf(stderr, "Tensorflow thread raising SIGSTOP\n");\
+			raise(SIGSTOP);\
+			fprintf(stderr, "Tensorflow thread woke up! Continuing ... \n");\
+			\
+			/* Lastly, for now we can call the function from the client */\
+			return ((cublasStatus_t (*)params)real_fn)(__VA_ARGS__);\
+		}
+
+	// Single-precision gemm
+	GENERATE_CUBLAS_INTERCEPT("cublasSgemm_v2", cublasSgemm_v2, (cublasHandle_t handle, 
+														  cublasOperation_t transa,
+														  cublasOperation_t transb, 
+														  int m,
+														  int n,
+														  int k,
+														  const float *alpha, /* host or device pointer */  
+														  const float *A, 
+														  int lda,
+														  const float *B,
+														  int ldb, 
+														  const float *beta, /* host or device pointer */  
+														  float *C,
+														  int ldc), 
+										 handle, transa, transb, m, n, k, alpha,
+										 A, lda, B, ldb, beta, C, ldc);
+
+	// Double-precision gemm
+	GENERATE_CUBLAS_INTERCEPT("cublasDgemm_v2", cublasDgemm_v2, (cublasHandle_t handle, 
+														  cublasOperation_t transa,
+														  cublasOperation_t transb, 
+														  int m,
+														  int n,
+														  int k,
+														  const double *alpha, /* host or device pointer */  
+														  const double *A, 
+														  int lda,
+														  const double *B,
+														  int ldb, 
+														  const double *beta, /* host or device pointer */  
+														  double *C,
+														  int ldc), 
+										 handle, transa, transb, m, n, k, alpha,
+										 A, lda, B, ldb, beta, C, ldc);
+	// TODO: Any more gemm functions?
 } /* extern "C" */
 

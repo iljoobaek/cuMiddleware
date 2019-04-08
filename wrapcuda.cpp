@@ -56,6 +56,35 @@ static void* real_dlsym(void *handle, const char* symbol)
 
 /* Interposed functions' real function handles */
 static fnCuLaunchKernel realCLK_dr;
+static fn_cublasSgemm_v2 real_cublasSgemm_v2;
+static fn_cublasDgemm_v2 real_cublasDgemm_v2;
+
+/* 
+ * Helper functions 
+ */
+
+void hijack_handle(void *handle, const char *symbol, void **fn_ptr)
+{
+	// Presumably, a Python application is trying to locatesymbol 
+	// so hijack the handle to retrieve would-be real fn, if possible
+	dlerror();
+	const char *error;
+	void *real_fn = real_dlsym(handle, symbol);
+	// Print error
+	if ((error = dlerror()) != NULL) 
+	{
+		fprintf(stderr, "Hijacking would-be libcuda.so handle \
+to retrieve real symbol (%s) failed! err: %s\n", symbol, error);
+		// Should never reach here!
+		exit(EXIT_FAILURE);
+	}
+
+	// Save real_fn into fn_ptr
+	if (real_fn)
+	{
+		*fn_ptr = real_fn;
+	}
+}
 
 /*
  ** Interposed Functions
@@ -70,25 +99,24 @@ void* dlsym(void *handle, const char *symbol)
 	if (strcmp(symbol, CUDA_SYMBOL_STRING(cuLaunchKernel)) == 0) {
 		if (handle != RTLD_DEFAULT && !realCLK_dr)
 		{
-			// Presumably, a Python application is trying to locate cuLaunchKernel
-			// so hijack the handle to retrieve would-be real fn, if possible
-			dlerror();
-			const char *error;
-			realCLK_dr = (fnCuLaunchKernel)\
-				real_dlsym(handle, "cuLaunchKernel");
-			// Print error
-			if ((error = dlerror()) != NULL) 
-			{
-				fprintf(stderr, "Hijacking would-be libcuda.so handle \
-to retrieve real cuLaunchKernel failed! err: %s\n", error);
-				// Should never reach here!
-				//exit(EXIT_FAILURE);
-			}
+			// Hijack the explicit handle opened to retrieve real function defn
+			hijack_handle(handle, "cuLaunchKernel", (void**)&realCLK_dr);
 		}
 		return (void*)(&cuLaunchKernel);
 	}
 	else if (strcmp(symbol, CUDA_SYMBOL_STRING(cublasSgemm_v2)) == 0) {
+		if (handle != RTLD_DEFAULT && !real_cublasSgemm_v2)
+		{
+			hijack_handle(handle, CUDA_SYMBOL_STRING(cublasSgemm_v2), (void**)&real_cublasSgemm_v2);
+		}
 	    return (void*)(&cublasSgemm_v2);
+	}
+	else if (strcmp(symbol, CUDA_SYMBOL_STRING(cublasDgemm_v2)) == 0) {
+		if (handle != RTLD_DEFAULT && !real_cublasDgemm_v2)
+		{
+			hijack_handle(handle, CUDA_SYMBOL_STRING(cublasDgemm_v2), (void**)&real_cublasDgemm_v2);
+		}
+	    return (void*)(&cublasDgemm_v2);
 	}
 	////else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuCtxGetCurrent)) == 0) {
 	////    return (void*)(&cuCtxGetCurrent);
@@ -198,13 +226,18 @@ extern "C"
 	}
 
 /* cuBLAS interposed functions */
-#define GENERATE_CUBLAS_INTERCEPT(fn_str, funcname, params, ...)   \
+#define GENERATE_CUBLAS_INTERCEPT(funcname, params, ...)   \
 		cublasStatus_t funcname params                                    \
 		{                                                                   \
-			/* TODO wrap each function? to send to middleware?*/ \
-			/*(__VA_ARGS__);*/                          \
-			static void *real_fn = (void*)real_dlsym(RTLD_NEXT, CUDA_SYMBOL_STRING(funcname));\
-			fprintf(stderr, "Caught %s (CUBLAS API)\n", fn_str); \
+			fprintf(stderr, "Caught %s (CUBLAS API)\n", #funcname); \
+			/* First, check to see if we can find real defn if not already
+			 * hijacked
+			 */\
+			if (!real_ ## funcname)\
+			{\
+				real_ ## funcname = (fn_ ## funcname)\
+					real_dlsym(RTLD_NEXT, CUDA_SYMBOL_STRING(funcname));\
+			}\
 			/* Next, ensure global memory mapping is init for global jobs queue */\
 			if (!global_jobs_q) \
 			{ \
@@ -217,7 +250,7 @@ extern "C"
 			}\
 			/* Queue job to server */\
 			int res;\
-			if ((res = queue_job_to_server(getpid(), fn_str, global_jobs_q)) < 0) \
+			if ((res = queue_job_to_server(getpid(), #funcname, global_jobs_q)) < 0) \
 			{\
 				fprintf(stderr, "Failed to queue job to server!\n");\
 				exit(EXIT_FAILURE);\
@@ -228,11 +261,11 @@ extern "C"
 			fprintf(stderr, "Tensorflow thread woke up! Continuing ... \n");\
 			\
 			/* Lastly, for now we can call the function from the client */\
-			return ((cublasStatus_t (*)params)real_fn)(__VA_ARGS__);\
+			return real_ ## funcname(__VA_ARGS__);\
 		}
 
 	// Single-precision gemm
-	GENERATE_CUBLAS_INTERCEPT("cublasSgemm_v2", cublasSgemm_v2, (cublasHandle_t handle, 
+	GENERATE_CUBLAS_INTERCEPT(cublasSgemm_v2, (cublasHandle_t handle, 
 														  cublasOperation_t transa,
 														  cublasOperation_t transb, 
 														  int m,
@@ -250,7 +283,7 @@ extern "C"
 										 A, lda, B, ldb, beta, C, ldc);
 
 	// Double-precision gemm
-	GENERATE_CUBLAS_INTERCEPT("cublasDgemm_v2", cublasDgemm_v2, (cublasHandle_t handle, 
+	GENERATE_CUBLAS_INTERCEPT(cublasDgemm_v2, (cublasHandle_t handle, 
 														  cublasOperation_t transa,
 														  cublasOperation_t transb, 
 														  int m,

@@ -59,6 +59,12 @@ static fnCuLaunchKernel realCLK_dr;
 static fn_cublasSgemm_v2 real_cublasSgemm_v2;
 static fn_cublasDgemm_v2 real_cublasDgemm_v2;
 
+static fn_cuMemAlloc_v2 real_cuMemAlloc_v2;
+static fn_cuMemFree_v2 real_cuMemFree_v2;
+static fn_cuMemGetInfo real_cuMemGetInfo;
+static fn_cuMemHostAlloc real_cuMemHostAlloc;
+static fn_cuMemcpyHtoDAsync_v2 real_cuMemcpyHtoDAsync_v2;
+static fn_cuMemsetD32_v2 real_cuMemsetD32_v2;
 /* 
  * Helper functions 
  */
@@ -118,6 +124,49 @@ void* dlsym(void *handle, const char *symbol)
 		}
 	    return (void*)(&cublasDgemm_v2);
 	}
+	//else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuMemAlloc_v2)) == 0) {
+	//	if (handle != RTLD_DEFAULT && !real_cuMemAlloc_v2)
+	//	{
+	//		hijack_handle(handle, CUDA_SYMBOL_STRING(cuMemAlloc_v2), (void**)&real_cuMemAlloc_v2);
+	//	}
+	//    return (void*)(&cuMemAlloc_v2);
+	//}
+	//else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuMemFree_v2)) == 0) {
+	//	if (handle != RTLD_DEFAULT && !real_cuMemFree_v2)
+	//	{
+	//		hijack_handle(handle, CUDA_SYMBOL_STRING(cuMemFree_v2), (void**)&real_cuMemFree_v2);
+	//	}
+	//    return (void*)(&cuMemFree_v2);
+	//}
+	else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuMemGetInfo)) == 0) {
+		if (handle != RTLD_DEFAULT && !real_cuMemGetInfo)
+		{
+			hijack_handle(handle, CUDA_SYMBOL_STRING(cuMemGetInfo), (void**)&real_cuMemGetInfo);
+		}
+	    return (void*)(&cuMemGetInfo);
+	}
+	//else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuMemHostAlloc)) == 0) {
+	//	if (handle != RTLD_DEFAULT && !real_cuMemHostAlloc)
+	//	{
+	//		hijack_handle(handle, CUDA_SYMBOL_STRING(cuMemHostAlloc), (void**)&real_cuMemHostAlloc);
+	//	}
+	//    return (void*)(&cuMemHostAlloc);
+	//}
+	//else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuMemcpyHtoDAsync_v2)) == 0) {
+	//	if (handle != RTLD_DEFAULT && !real_cuMemcpyHtoDAsync_v2)
+	//	{
+	//		hijack_handle(handle, CUDA_SYMBOL_STRING(cuMemcpyHtoDAsync_v2), (void**)&real_cuMemcpyHtoDAsync_v2);
+	//	}
+	//    return (void*)(&cuMemcpyHtoDAsync_v2);
+	//}
+	//else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuMemsetD32_v2)) == 0) {
+	//	if (handle != RTLD_DEFAULT && !real_cuMemsetD32_v2)
+	//	{
+	//		hijack_handle(handle, CUDA_SYMBOL_STRING(cuMemsetD32_v2), (void**)&real_cuMemsetD32_v2);
+	//	}
+	//    return (void*)(&cuMemsetD32_v2);
+	//}
+	
 	////else if (strcmp(symbol, CUDA_SYMBOL_STRING(cuCtxGetCurrent)) == 0) {
 	////    return (void*)(&cuCtxGetCurrent);
 	////}
@@ -133,6 +182,7 @@ void* dlsym(void *handle, const char *symbol)
 /* Interposed CUDA Driver API functions */
 extern "C" 
 {
+
 	CUresult CUDAAPI cuLaunchKernel(CUfunction f,
 									unsigned int gridDimX,
 									unsigned int gridDimY,
@@ -211,16 +261,75 @@ extern "C"
 							extra);
 	}
 
+	/* CUDA Memory management Driver API functions */
+#define GENERATE_CUMEM_INTERCEPT(funcname, params, ...)   \
+		CUresult funcname params                                    \
+		{                                                                   \
+			fprintf(stderr, "Caught %s (cuMem* Driver API)\n", #funcname); \
+			/* First, check to see if we can find real defn if not already
+			 * hijacked
+			 */\
+			if (!real_ ## funcname)\
+			{\
+				real_ ## funcname = (fn_ ## funcname)\
+					real_dlsym(RTLD_NEXT, CUDA_SYMBOL_STRING(funcname));\
+				if (!real_ ## funcname)	\
+				{\
+					fprintf(stderr, "Failed to get real fn for %s\n", #funcname);	\
+					exit(EXIT_FAILURE);\
+				}\
+			}\
+			/* Next, ensure global memory mapping is init for global jobs queue */\
+			if (!global_jobs_q) \
+			{ \
+				int res;\
+				if ((res = mmap_global_jobs_queue(&jobs_q_fd, (void**)&global_jobs_q)) < 0)\
+				{\
+					fprintf(stderr, "Failed to mmap global jobs queue!\n");\
+					exit(EXIT_FAILURE);\
+				}\
+			}\
+			/* Queue job to server */\
+			int res;\
+			if ((res = queue_job_to_server(getpid(), #funcname, global_jobs_q)) < 0) \
+			{\
+				fprintf(stderr, "Failed to queue job to server!\n");\
+				exit(EXIT_FAILURE);\
+			}\
+			/* Pause this thread, wait to be continued by middleware */ \
+			fprintf(stderr, "Tensorflow thread raising SIGSTOP\n");\
+			raise(SIGSTOP);\
+			fprintf(stderr, "Tensorflow thread woke up! Continuing ... \n");\
+			\
+			/* Lastly, for now we can call the function from the client */\
+			return real_ ## funcname(__VA_ARGS__);\
+		}
+	//GENERATE_CUMEM_INTERCEPT(cuMemAlloc_v2, (CUdeviceptr* dptr, size_t bytesize),\
+	//										dptr, bytesize);
+	//GENERATE_CUMEM_INTERCEPT(cuMemFree_v2, (CUdeviceptr dptr), dptr);
+	//GENERATE_CUMEM_INTERCEPT(cuMemHostAlloc, ( void** pp, size_t bytesize, unsigned int  Flags ),\
+	//										pp, bytesize, Flags);
+	//GENERATE_CUMEM_INTERCEPT(cuMemGetInfo, ( size_t* free, size_t* total ),\
+	//										free, total);
+	//GENERATE_CUMEM_INTERCEPT(cuMemcpyHtoDAsync_v2, ( CUdeviceptr dstDevice, 
+	//												 const void* srcHost, 
+	//												 size_t ByteCount, 
+	//												 CUstream hStream ),
+	//											dstDevice, srcHost, ByteCount,
+	//											hStream);	
+	//GENERATE_CUMEM_INTERCEPT(cuMemsetD32_v2, ( CUdeviceptr dstDevice, unsigned int  ui, size_t N ),\
+	//										dstDevice, ui, N);
+
 	/* cuBLAS API interposition 
  	 * Intercepting these functions allows
 	 * our middleware to get to run these functions within its own address-space.
 	 */
 	/* TODO: How handle cublas handle creation/destruction */
-	cublasStatus_t cublasCreate /*_v2*/ (cublasHandle_t *handle)
+	cublasStatus_t cublasCreate_v2 (cublasHandle_t *handle)
 	{
 		return CUBLAS_STATUS_EXECUTION_FAILED;	
 	}
-	cublasStatus_t cublasDestroy /*_v2*/ (cublasHandle_t handle)
+	cublasStatus_t cublasDestroy_v2 (cublasHandle_t handle)
 	{
 		return CUBLAS_STATUS_EXECUTION_FAILED;	
 	}

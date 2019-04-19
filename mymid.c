@@ -1,49 +1,17 @@
-
-/*
- * Simplified mid.c
- * Just initializes the global JOB_QUEUE (preallocates a few job structs)
- * TODO: Initialize a global DATA_QUEUE to use with JOB_QUEUE to pass
- * * Note: mmap'd data should hold only INDICES, not pointers
- */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/stat.h>           // for mode constants 
-#include <unistd.h>          
-#include <fcntl.h>              // for O_ constants, such as "O_RDWR"
-#include <signal.h>             // sigint can trigger the clean up process;
-#include <dlfcn.h>				// dlsym, RTLD_DEFAULT
-
-#include "mid_structs.h"
-#include "mid_queue.h"
-#include "mid_common.h"
-
-static job_t *global_jobs_q;
-static int jobs_q_fd;
+static job_t *jobs_executing;
+static job_t *jobs_compeleted;
 // -------------------------- Server Side Functions ----------------------------
 
-int init_global_jobs_queue()
-{
-	int res = mmap_global_jobs_queue(&jobs_q_fd, (void**)&global_jobs_q);
-	if (res < 0)
-	{
-		fprintf(stderr, "Failed to mmap global jobs queue!\n");
-		return -1;
-	}
-	// Init the queue starting at mapped GLOBAL_JOBS_QUEUE addr
-	queue_init(global_jobs_q); 
-	return 0;
-}
 
-void destroy_global_jobs_queue()
+void destroy_global_jobs()
 {
-	if (jobs_q_fd >= 0)
+	if (GJ_fd >= 0)
 	{
 		// Valid fd means preperly init'd
-		queue_destroy(global_jobs_q);
-		shm_destroy(JOB_MEM_NAME, jobs_q_fd);
+		queue_destroy(jobs_queued);
+		queue_destroy(jobs_executing);
+		queue_destroy(jobs_completed);
+		shm_destroy(GLOBAL_MEM_NAME, GJ_fd);
 	}
 }
 
@@ -90,7 +58,7 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Starting up middleware main...\n");
 
 	int res;
-	if ((res=init_global_jobs_queue()) < 0)
+	if ((res=init_global_jobs(&GJ_fd, &GJ)) < 0)
 	{
 		fprintf(stderr, "Failed to init global jobs queue");
 		return EXIT_FAILURE;
@@ -103,8 +71,9 @@ int main(int argc, char **argv)
 	// Begin waiting for jobs to be enqueued (sample every 250ms)
 	while (continue_flag)
 	{
-		while (queue_length(global_jobs_q) == 0)
+		while (queue_length(GJ) == 0)
 		{
+			/* If empty, first check if continue. Then sleep */
 			if (!continue_flag)
 			{
 				// Break immediately
@@ -112,12 +81,13 @@ int main(int argc, char **argv)
 			}
 			usleep(SLEEP_MICROSECONDS);
 		}
-		if (queue_length(global_jobs_q) > 0)
+		/* Empty GJ->__jobs_queued */
+		while (GJ->total_count > 0)
 		{
 			fprintf(stdout, "Found a job in the job queue\n");
 			
 			job_t cpy_job;
-			if ((res = dequeue_job(global_jobs_q, &cpy_job)) < 0)
+			if ((res = peek_next_job_queued(GJ, &cpy_job)) < 0)
 			{
 				fprintf(stderr, "Failed to dequeue job! Exiting\n");
 				continue_flag = false;
@@ -127,6 +97,6 @@ int main(int argc, char **argv)
 			handle_job(&cpy_job);
 		}
 	}
-	destroy_global_jobs_queue();
+	destroy_global_jobs();
 	
 }

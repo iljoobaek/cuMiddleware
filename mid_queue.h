@@ -30,13 +30,13 @@ int is_job_finished(int job_id, void *jobs_list);
 int is_queue_full();
 
 // ---------------------------- Server Functions -------------------------------
-void remove_from_queue(global_jobs_t *global_jobs, job_t *job_to_remove);
+int remove_from_queue(job_t *rmj, job_t **queue);
 
 int enqueue_job(job_t *new_job, job_t **queue);
 int dequeue_job_from_queue(job_t **queue, job_t **j_dest);
 
 // free every job in the queue, including each job structs themselves. 
-void free_queue(jobs_t *jobs_list);
+void free_queue(job_t *jobs_list);
 
 int peek_job_queued_at_i(global_jobs_t *gb_jobs, job_t **qd_job, int i);
 

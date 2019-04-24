@@ -1,13 +1,17 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <assert.h>		// assert()
 #include "mid_structs.h" // global_jobs_t
-#include "mid_queue.h"
 // ------------------------ Defines ------------------------
 #define DEBUG_FN(fn, ...) \
-	if ((int res = fn(__VA_ARGS__)) < 0) { \
+{\
+	int res;\
+	if ((res = fn(__VA_ARGS__)) < 0) { \
 		fprintf(stderr, "DEBUG_FN: %s returned %d!\n", #fn, res);\
-		assert(false);
+		assert(false);\
+	}\
+}
 
 
 #define GLOBAL_MEM_NAME "global_mem"
@@ -22,7 +26,7 @@
 
 int shm_init(const char *name);
 int shm_destroy(const char *name, int fd);
-int init_global_jobs(int *fd, void **addr);
+int init_global_jobs(int *fd, global_jobs_t **addr);
 int get_shared_job(const char *name, job_t **save_job);
 
 bool jobs_equal(job_t *a, job_t *b);
@@ -32,6 +36,8 @@ int build_shared_job(pid_t tid, const char *job_name,
 						unsigned int run_count,
 						time_t deadline,
 						enum job_type req_type,
-						job_t **save_new_job);
+						job_t **save_new_job,
+						char *copy_shm_name);
+
 #endif
 

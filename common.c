@@ -4,7 +4,8 @@
 #include <errno.h>
 #include <unistd.h>          
 #include <fcntl.h>              // for O_ constants, such as "O_RDWR"
-#include <string.h>				// memset()
+#include <string.h>				// memset(), strncpy
+#include <stdio.h>				// *printf, perror
 #include "mid_structs.h"		// global_jobs_t, GLOBAL_JOBS_MAX*, JOB_MEM_NAME_MAX_LEN
 #include "mid_common.h"
 
@@ -39,10 +40,10 @@ int init_global_jobs(int *fd, global_jobs_t **addr)
 	global_jobs_t *gj = (global_jobs_t *) (*addr);
 	gj->is_active = 1;
 	gj->total_count = 0;
-	// Zero out the job_names array
-	memset(gj->job_names, 0, GLOBAL_JOBS_MAX_JOBS * JOB_MEM_NAME_MAX_LEN);
+	// Zero out the job_shm_names array
+	memset(gj->job_shm_names, 0, GLOBAL_JOBS_MAX_JOBS * JOB_MEM_NAME_MAX_LEN);
 
-	// Initialize the global lock on the job_names list
+	// Initialize the global lock on the job_shm_names list
 	pthread_mutexattr_t mutex_attr;
 
 	// Initialize requests_q_lock to be PROCESS_SHARED
@@ -63,8 +64,7 @@ int shm_init(const char *name){
     int fd;
     fd = shm_open(name, O_RDWR, 0660); 
     if (errno == ENOENT){
-        // fprintf(stdout, fmt, ## args)
-        printf("[INFO] shared memory is intialized for the first time\n");
+        fprintf(stdout, "[INFO] shared memory is intialized for the first time\n");
         fd = shm_open(name, O_RDWR|O_CREAT, 0660);
     }
     if (fd == -1){
@@ -78,7 +78,7 @@ int shm_init(const char *name){
 /* shm_destroy: close the file descriptor, and unlink shared memory;
 * returns 0 if successful, -1 otherwise
 */ 
-int shm_destroy(const char *name, int fd){
+int shm_destroy(const char *name, int fd) {
     // close the file descriptor
     if (close(fd)){
         perror("[Error] in shm_destroy: closing file descriptor");
@@ -147,7 +147,7 @@ int build_job(pid_t tid, const char *job_name,
 	// Init job with metadata
 	shm_job->tid = tid;
 	shm_job->priority = 0; // TODO
-	memcpy(shm_job->job_name, job_name);
+	strncpy(shm_job->job_name, job_name, JOB_MEM_NAME_MAX_LEN);
 	shm_job->last_peak_mem = lpm;
 	shm_job->avg_peak_mem = apm;
 	shm_job->worst_peak_mem = wpm;
@@ -232,6 +232,6 @@ int build_shared_job(pid_t tid, const char *job_name,
 						deadline,
 						req_type, shm_job);
 	*save_new_job = shm_job;
-	strcpy(copy_shm_name, job_shm_name);
+	strncpy(copy_shm_name, job_shm_name, JOB_MEM_NAME_MAX_LEN);
+	return 0;
 }
-

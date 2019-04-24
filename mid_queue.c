@@ -82,7 +82,7 @@ int remove_from_queue(job_t *rmj, job_t **queue) {
 
 	// First check that rmj is in queue
 	if (!job_is_in_queue(rmj, queue)) {
-		fprintf(stderr, "remove from queue: job (%s) is not in queue\n", j->name);
+		fprintf(stderr, "remove from queue: job (%s) is not in queue\n", rmj->job_name);
 		return -2;
 	}
 	
@@ -129,7 +129,7 @@ int enqueue_job(job_t *new_job, job_t **queue){
         // walk to the tail of the jobs list;
         // and change the pointer to point to the new_job
 		job_ptr->ll_size++;
-        job_ptr = (job_t *)last_job_ptr->next;
+        job_ptr = job_ptr->next;
     }
     // arrived at the last job; 
 	job_ptr->ll_size++;
@@ -144,7 +144,7 @@ int dequeue_job_from_queue(job_t **queue, job_t **j_dest)
 		fprintf(stderr, "Invalid queue as input to dequeue_job_from_queue\n");
 		return -1;
 	}
-	if (queue->ll_size < 1) {
+	if ((*queue)->ll_size < 1) {
 		// Can't dequeue!
 		fprintf(stderr, "Can't dequeue from job queue!\n");
 		return -1;
@@ -164,7 +164,6 @@ int dequeue_job_from_queue(job_t **queue, job_t **j_dest)
 	(*j_dest)->next = NULL;
 
 	return 0;
-
 }
 
 // TODO: Currently being unused
@@ -183,16 +182,14 @@ void free_queue(job_t *jobs_list){
 
 
 /* TODO: Not thread-safe */
-int peek_job_queued_at_i(global_jobs_t *gb_jobs, job_t **qd_job, int i)
+int peek_job_queued_at_i(global_jobs_t *gj, job_t **qd_job, int i)
 {
-	global_jobs_t *gj = (global_jobs_t *)gb_jobs;
-
 	assert(gj != NULL);
 	assert(gj->total_count > 0);
 	assert(gj->total_count > i);
 
 	// Grab the name from job_shm_names 
-	char *job_mem_name = &(gj->job_shm_names[i]);
+	char *job_mem_name = gj->job_shm_names[i];
 	
 	return get_shared_job(job_mem_name, qd_job);
 }

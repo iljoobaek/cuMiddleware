@@ -15,6 +15,8 @@
 
 #include <pthread.h> // pthread_mutex_t, pthread_cond_t
 #include <time.h> // time_t
+#include <stdint.h> // uint64_t
+#include <stdbool.h> // bool
 
 #define MAX_NAME_LENGTH 80 
 
@@ -72,8 +74,8 @@ typedef struct job {
 	bool client_exec_allowed;		// flag determining whether client should execute when woken
 
 	// Server-side attributes - linked-list properties
-	int ll_size;						// TODO: number of next elements + 1, 0 if empty
-    job *next;                     // this is a linked list
+	int ll_size;					// TODO: number of next elements + 1, 0 if empty
+    struct job *next;                     // this is a linked list
 } job_t;
 
 

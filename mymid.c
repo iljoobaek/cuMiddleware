@@ -20,20 +20,24 @@
 static uint64_t max_gpu_memory_available; // In B
 static uint64_t gpu_memory_available;	// In Bytes
 static job_t *jobs_executing;
+static job_t *jobs_queued;
 static job_t *jobs_completed;
+static int GJ_fd;
+static global_jobs_t *GJ;
 // -------------------------- Server Side Functions ----------------------------
 
 
 // TODO: Better name and interface
-void destroy_global_jobs()
+void destroy_global_jobs(int GJ_fd)
 {
 	if (GJ_fd >= 0)
 	{
 		// Valid fd means preperly init'd
-		queue_destroy(jobs_queued);
-		queue_destroy(jobs_executing);
-		queue_destroy(jobs_completed);
-		shm_destroy(GLOBAL_MEM_NAME, GJ_fd);
+		free_queue(jobs_queued);
+		free_queue(jobs_executing);
+		free_queue(jobs_completed);
+		close(GJ_fd);
+		shm_unlink(GLOBAL_MEM_NAME);
 	}
 }
 
@@ -54,7 +58,7 @@ int job_release_gpu(job_t *comp_job) {
 	// Assumes that job is coming from jobs_completed
 	if (gpu_memory_available + comp_job->worst_peak_mem < gpu_memory_available) {
 		// Something's wrong, overflow occurred when releasing memory
-		fprintf(stderr, "Overflow occurred when releasing gpu for job with name %s (wpm %d, avail%d)\n!",\
+		fprintf(stderr, "Overflow occurred when releasing gpu for job with name %s (wpm %lu, avail %lu)\n!",\
 				comp_job->job_name, comp_job->worst_peak_mem, gpu_memory_available);
 		return -2;
 	}
@@ -83,20 +87,24 @@ int job_acquire_gpu(job_t *j) {
 				gpu_memory_available == max_gpu_memory_available) {
 			return 0;
 		}
+		// Something wrong with max_gpu_memory available
+		fprintf(stderr, "Couldn't run job exclusive, bad initialization of max_gpu_memory_available: %lu\n",\
+				max_gpu_memory_available);
+		return -1;
 	} else {
 		// Check if job can ever run first
 		if (j->worst_peak_mem > max_gpu_memory_available) {
-			fprintf(stderr, "Job with name %s must abort (wpm %d vs. max %d)!\n",\
+			fprintf(stderr, "Job with name %s must abort (wpm %lu vs. max %lu)!\n",\
 					j->job_name, j->worst_peak_mem, max_gpu_memory_available);
 			return -2;
 		} else if (j->worst_peak_mem > gpu_memory_available) {
 			// Job must wait to run
-			fprintf(stderr, "Job with name %s must wait (wpm %d vs. avail %d)\n",\
+			fprintf(stderr, "Job with name %s must wait (wpm %lu vs. avail %lu)\n",\
 					j->job_name, j->worst_peak_mem, gpu_memory_available);
 			return -1;
 		} else {
 			// Job can run immediately
-			fprintf(stderr, "Job with name %s can run (wpm %d vs. avail %d, new avail %d)\n",\
+			fprintf(stderr, "Job with name %s can run (wpm %lu vs. avail %lu, new avail %lu)\n",\
 					j->job_name, j->worst_peak_mem, gpu_memory_available,
 					gpu_memory_available - j->worst_peak_mem);
 			gpu_memory_available -= j->worst_peak_mem;
@@ -117,7 +125,7 @@ int abort_job(job_t *aj) {
 
 /* Wake client with ability to run job */
 int trigger_job(job_t *tj) {
-	if (!aj) return -1;
+	if (!tj) return -1;
 
 	// Set client's execution flag to run
 	tj->client_exec_allowed = true;
@@ -131,7 +139,7 @@ int main(int argc, char **argv)
 
 	max_gpu_memory_available = 1<<30; // 1 GB
 	gpu_memory_available = max_gpu_memory_available;
-	fprintf(stdout, "GPU Memory has %d bytes available at init." % gpu_memory_available);
+	fprintf(stdout, "GPU Memory has %lu bytes available at init.\n", gpu_memory_available);
 
 	int res;
 	if ((res=init_global_jobs(&GJ_fd, &GJ)) < 0)
@@ -160,7 +168,7 @@ int main(int argc, char **argv)
 			job_t *q_job;
 			if ((res=peek_job_queued_at_i(GJ, &q_job, i)) < 0)
 			{
-				fprintf(stderr, "Failed to peek job at idx %d. Continuing...\n" % i);
+				fprintf(stderr, "Failed to peek job at idx %d. Continuing...\n", i);
 			}
 			
 			// Enqueue job request to right queue
@@ -177,8 +185,8 @@ int main(int argc, char **argv)
 			if (enqueue_job(q_job, &queue) < 0) {
 				fprintf(stderr, "Failed to enqueue job! Job type %d", q_job->req_type);
 			}
-			fprintf(stdout, "Job (%s, pid %d) added to %s queue.\n", q_job->job_name,\
-					q_job->pid, qtype);
+			fprintf(stdout, "Job (%s, tid %d) added to %s queue.\n", q_job->job_name,\
+					q_job->tid, qtype);
 
 			// Continue onto next job_shm_name to process
 			i++;
@@ -186,16 +194,16 @@ int main(int argc, char **argv)
 		pthread_mutex_unlock(&(GJ->requests_q_lock));
 
 		/* Handle all completed jobs first to release GPU resources */
-		while (jobs_completed->ll_size > 0) {
+		while (jobs_completed && jobs_completed->ll_size > 0) {
 			/* Dequeue job from completed */
 			job_t *compl_job = NULL;
 			dequeue_job_from_queue(&jobs_completed, &compl_job);
 
 			/* Handle completed jobs */
 			if (job_release_gpu(compl_job) == 0) {
-				remove_from_queue(compl_job, &&jobs_executing);
+				remove_from_queue(compl_job, &jobs_executing);
 				fprintf(stdout, "Removed compl_job (%s, %d) from JOBS_EXECUTING.\n",\
-						compl_job->job_name, compl_job->pid);
+						compl_job->job_name, compl_job->tid);
 				// Reset flag since a job just released gpu resources
 				queued_wait_for_complete = false;
 			}
@@ -205,13 +213,15 @@ int main(int argc, char **argv)
 		 * resources, trigger execution of as many queued jobs as
 		 * can fit on GPU.
 		 */
-		while (!queued_wait_for_complete && jobs_queued->ll_size > 0) {
+		while (!queued_wait_for_complete && 
+				jobs_queued &&
+				jobs_queued->ll_size > 0) {
 			/* Dequeue job from jobs_queued */
 			job_t *q_job = NULL;
 			dequeue_job_from_queue(&jobs_queued, &q_job);
 
 			/* Handle queued jobs */
-			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->pid);
+			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
 			int res = job_acquire_gpu(q_job);
 			if (res < 0) {
 				if (res == -1) {
@@ -241,6 +251,6 @@ int main(int argc, char **argv)
 
 	// TODO: Better name and interface
 	fprintf(stdout, "Cleaning up server...\n");
-	destroy_global_jobs();
+	destroy_global_jobs(GJ_fd);
 	return 0;
 }

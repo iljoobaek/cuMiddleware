@@ -18,7 +18,13 @@ common.o: common.c
 mid_queue.o: mid_queue.c
 	$(GCC) $(MIDFLAGS) -o mid_queue.o mid_queue.c -c
 
+test_mid.o: test_mid.c mid_queue.o common.o
+	$(GCC) $(MIDFLAGS) -o test_mid.o test_mid.c mid_queue.o common.o $(MID_LOAD)
+
 mid: mymid.c mid_queue.o common.o
 	$(GCC) $(MIDFLAGS) -o mid common.c mymid.c mid_queue.c $(MID_LOAD) #$(TF_LOAD)
+
+test: mid test_mid.o
+
 clean:
-	rm libcuhook.so mid
+	rm -rf libcuhook.so mid

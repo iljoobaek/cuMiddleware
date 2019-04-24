@@ -12,6 +12,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <sys/mman.h> // munmap
 #include "mid_common.h"
 #include "mid_structs.h"
 #include "mid_queue.h"
@@ -112,7 +113,7 @@ int remove_from_queue(job_t *rmj, job_t **queue) {
 int enqueue_job(job_t *new_job, job_t **queue){
 
     // Check for bad queue input
-    if (queue == NULL || *queue == NULL) {
+    if (queue == NULL) {
         return -1;
     } 
 	if (new_job == NULL) {
@@ -120,22 +121,30 @@ int enqueue_job(job_t *new_job, job_t **queue){
 	}
 
 	// Ensure new_job is well-formed
-	new_job->ll_size = 0;
+	new_job->ll_size = 1;
   	new_job->next = NULL;
 
 	// Walk to end of queue, place job there
     job_t *job_ptr = *queue;
-    while (job_ptr->next != NULL){
-        // walk to the tail of the jobs list;
-        // and change the pointer to point to the new_job
-		job_ptr->ll_size++;
-        job_ptr = job_ptr->next;
-    }
-    // arrived at the last job; 
-	job_ptr->ll_size++;
-    job_ptr->next = new_job;
 
-    return 0;
+	// If queue is initially empty
+	if (!job_ptr) {
+		*queue = new_job;
+		return 0;
+	} else {
+
+		while (job_ptr->next != NULL){
+			// walk to the tail of the jobs list;
+			// and change the pointer to point to the new_job
+			job_ptr->ll_size++;
+			job_ptr = job_ptr->next;
+		}
+		// arrived at the last job; 
+		job_ptr->ll_size++;
+		job_ptr->next = new_job;
+
+		return 0;
+	}
 }
 
 int dequeue_job_from_queue(job_t **queue, job_t **j_dest)
@@ -166,17 +175,16 @@ int dequeue_job_from_queue(job_t **queue, job_t **j_dest)
 	return 0;
 }
 
-// TODO: Currently being unused
-// free every job in the queue, including each job structs themselves. 
-void free_queue(job_t *jobs_list){
+// unmap every job in the queue
+void unmap_queue(job_t *jobs_list){
     job_t *jobs_ptr = jobs_list;
     job_t *curr_job;
     while (jobs_ptr != NULL){
         curr_job = jobs_ptr;
         jobs_ptr = (job_t *)jobs_ptr->next;
-        free(curr_job);
+        munmap(curr_job, sizeof(job_t));
     }
-    free(jobs_list);
+    munmap(jobs_list, sizeof(job_t));
     return;
 }
 

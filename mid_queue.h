@@ -35,8 +35,8 @@ int remove_from_queue(job_t *rmj, job_t **queue);
 int enqueue_job(job_t *new_job, job_t **queue);
 int dequeue_job_from_queue(job_t **queue, job_t **j_dest);
 
-// free every job in the queue, including each job structs themselves. 
-void free_queue(job_t *jobs_list);
+// unmap every job in the queue, including each job structs themselves. 
+void unmap_queue(job_t *jobs_list);
 
 int peek_job_queued_at_i(global_jobs_t *gb_jobs, job_t **qd_job, int i);
 

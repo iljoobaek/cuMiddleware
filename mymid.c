@@ -33,9 +33,9 @@ void destroy_global_jobs(int GJ_fd)
 	if (GJ_fd >= 0)
 	{
 		// Valid fd means preperly init'd
-		free_queue(jobs_queued);
-		free_queue(jobs_executing);
-		free_queue(jobs_completed);
+		unmap_queue(jobs_queued);
+		unmap_queue(jobs_executing);
+		unmap_queue(jobs_completed);
 		close(GJ_fd);
 		shm_unlink(GLOBAL_MEM_NAME);
 	}
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 		// Grab job_shm_names lock before emptying
 		pthread_mutex_lock(&(GJ->requests_q_lock));
 		int i=0;
-		while (GJ->total_count > 0)
+		while ((GJ->total_count - i)> 0)
 		{
 			int res;
 			job_t *q_job;
@@ -172,18 +172,18 @@ int main(int argc, char **argv)
 			}
 			
 			// Enqueue job request to right queue
-			job_t *queue=NULL;
+			job_t **queue_addr =NULL;
 			char *qtype = NULL;
 			if (q_job->req_type == QUEUED) {
 				qtype = "QUEUED";
-				queue = jobs_executing;
+				queue_addr = &jobs_queued;
 			}
 			else {
 				qtype = "COMPLETED";
-				queue = jobs_completed;
+				queue_addr = &jobs_completed;
 			}
-			if (enqueue_job(q_job, &queue) < 0) {
-				fprintf(stderr, "Failed to enqueue job! Job type %d", q_job->req_type);
+			if (enqueue_job(q_job, queue_addr) < 0) {
+				fprintf(stderr, "Failed to enqueue job! Job type %d\n", q_job->req_type);
 			}
 			fprintf(stdout, "Job (%s, tid %d) added to %s queue.\n", q_job->job_name,\
 					q_job->tid, qtype);
@@ -191,11 +191,14 @@ int main(int argc, char **argv)
 			// Continue onto next job_shm_name to process
 			i++;
 		}
+		// Reset total count
+		GJ->total_count = 0;
 		pthread_mutex_unlock(&(GJ->requests_q_lock));
 
 		/* Handle all completed jobs first to release GPU resources */
 		while (jobs_completed && jobs_completed->ll_size > 0) {
 			/* Dequeue job from completed */
+			fprintf(stdout, "Handling completed job!\n");
 			job_t *compl_job = NULL;
 			dequeue_job_from_queue(&jobs_completed, &compl_job);
 
@@ -204,6 +207,10 @@ int main(int argc, char **argv)
 				remove_from_queue(compl_job, &jobs_executing);
 				fprintf(stdout, "Removed compl_job (%s, %d) from JOBS_EXECUTING.\n",\
 						compl_job->job_name, compl_job->tid);
+
+				/* TODO: Avoid having client sleep waiting for server */
+				pthread_cond_signal(&(compl_job->client_wake));
+
 				// Reset flag since a job just released gpu resources
 				queued_wait_for_complete = false;
 			}
@@ -213,6 +220,9 @@ int main(int argc, char **argv)
 		 * resources, trigger execution of as many queued jobs as
 		 * can fit on GPU.
 		 */
+		if (jobs_queued) {
+			fprintf(stdout, "jobs_queued size %d\n", jobs_queued->ll_size);
+		}
 		while (!queued_wait_for_complete && 
 				jobs_queued &&
 				jobs_queued->ll_size > 0) {
@@ -240,7 +250,7 @@ int main(int argc, char **argv)
 				enqueue_job(q_job, &jobs_executing);
 
 				// Wake client to trigger execution
-				fprintf(stdout, "\tJob can run, waking client now");
+				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
 				trigger_job(q_job);
 			}
 		}

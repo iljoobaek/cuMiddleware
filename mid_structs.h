@@ -16,10 +16,10 @@
 #include <pthread.h> // pthread_mutex_t, pthread_cond_t
 #include <time.h> // time_t
 
-#define MAX_NAME_LENGTH 250
+#define MAX_NAME_LENGTH 80 
 
 #define GLOBAL_JOBS_MAX_JOBS 100
-#define JOB_MEM_NAME_MAX_LEN 25
+#define JOB_MEM_NAME_MAX_LEN 100
 
 // ------------------------ Data structures ------------------------
 // struct for a list of parameters to launch kernel
@@ -56,17 +56,18 @@ typedef struct job {
     int priority;
 
 	char job_name[MAX_NAME_LENGTH];
-    double last_peak_mem;
-	double avg_peak_mem;
-	double worst_peak_mem;
+    uint64_t last_peak_mem;			// In bytes
+	uint64_t avg_peak_mem;
+	uint64_t worst_peak_mem;
     double last_exec_time;
-   	double avg_execu_time;
+   	double avg_exec_time;
     double worst_exec_time;
 	unsigned int run_count;
 	time_t deadline;
 	enum job_type req_type;			// 'queued' or 'completed'
 	
 	// Client-side/server-side attrs - communication properties
+	pthread_mutex_t own_job;		// mutex protecting job from multi-threaded mods
 	pthread_cond_t client_wake;		// cond_var used to block client until ready
 	bool client_exec_allowed;		// flag determining whether client should execute when woken
 
@@ -83,19 +84,14 @@ typedef struct job {
 
 typedef struct global_jobs {
     int is_active;                  // 1 after the server is started;
-    volatile int is_empty;          // 1 when there's no jobs in the queue;
     int total_count;
 
 	// Statically alloc'd array of client-created shared memory
 	// object names, at which the job queue for this client can be found
-	char job_names[GLOBAL_JOBS_MAX_JOBS][JOB_MEM_NAME_MAX_LEN];
+	char job_shm_names[GLOBAL_JOBS_MAX_JOBS][JOB_MEM_NAME_MAX_LEN];
 	pthread_mutex_t requests_q_lock;
 
 } global_jobs_t;
-
-
-
-
 
 #endif
 

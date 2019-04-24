@@ -18,16 +18,20 @@
 
 // ------------------------------ Client Functions ------------------------------
 // visible to client: 
-// submit a job to the global jobs_queued queue; update total_count, is_empty, 
+// submit a job to the global jobs_queued queue; update total_count, 
 // the jobs_list itself, 
-void submit_job(void *gb_jobs, void *new_job, char *job_name){
-    global_jobs_t *global_jobs = (global_jobs_t *)gb_jobs;
+void submit_job(global_jobs_t *gj, job_t *new_job, char *job_shm_name){
 
-    memcpy(global_jobs->job_names[global_jobs->total_count], job_name,
+	// First, grab the requests_q_lock to modify job_name list
+	pthread_mutex_lock(&(gj->requests_q_lock));
+	
+	// Then modify job_shm_names 
+    memcpy(gj->job_shm_names[gj->total_count], job_shm_name,
 		   JOB_MEM_NAME_MAX_LEN);    
+    gj->total_count += 1;
 
-    global_jobs->is_empty = 0;
-    global_jobs->total_count += 1;
+	// Lastly, unlock
+	pthread_mutex_unlock(&(gj->requests_q_lock));
     return;
 }
 
@@ -45,70 +49,122 @@ int is_queue_full(){
 
 
 // ---------------------------- Server Functions -------------------------------
-// TODO: Currently being unused
-// from jobs_queued list, remove max_job from the linked list 
-void remove_from_queue(global_jobs_t *global_jobs, job_t *job_to_remove){
-    job_t *job = global_jobs->__jobs_queued; 
-    job_t *prev_job = NULL;
+bool job_is_in_queue(job_t *j, job_t **queue) {
+	if (!j || !queue || !(*queue)) {
+		// Bad input pointers!
+		fprintf(stderr, "remove_from_queue: bad input pointer(s)!\n");
+		return -1;
+	}
 
-    // update the linked list; 
-    while (job!= NULL){
-        if (job == job_to_remove){
-            // found the job; just remove it
-            // edge: head of the list
-            if (prev_job == NULL){
-                global_jobs->__jobs_queued = (job_t *)job->next;
-            } else {
-                prev_job->next = job->next; 
-            }
-            break;
-        }
-        // traverse to the next job;
-        job = (job_t *)job->next;
-        prev_job = job;
-    }
-    return;
+	// Walk the job queue to find j
+	job_t *c = *queue;
+	while (c != NULL) {
+		if (jobs_equal(c, j)) {
+			return true;
+		}
+		c = c->next;	
+	}
+	return false;
 }
 
-// TODO: Currently being unused
-void enqueue_jobs_completed(void *gb_jobs, void *new_job){
-    global_jobs_t *global_jobs = (global_jobs_t *)gb_jobs;
+/*
+ * Does not assume rmj is in queue, returns failure if not found.
+ * Assumes rmj could only be found once in queue, maximum.
+ *
+ * Returns 0 no removal, -1 on error, -2 if job not in queue
+ */
+int remove_from_queue(job_t *rmj, job_t **queue) {
+	if (!rmj || !queue || !(*queue)) {
+		// Bad input pointers!
+		fprintf(stderr, "remove_from_queue: bad input pointer(s)!\n");
+		return -1;
+	}
 
-    // edge: first item in the queue: 
-    if (global_jobs->__jobs_completed == NULL){
-        global_jobs->__jobs_completed = (job_t *)new_job;
-        return;
-    } 
-    
-    job_t *last_job_ptr = global_jobs->__jobs_completed; 
-    while (last_job_ptr->next != NULL){
-        // walk to the tail of the jobs list;
-        // and change the pointer to point to the new_job
-        last_job_ptr = (job_t *)last_job_ptr->next;
-    }
-    // arrived at the last job; 
-    last_job_ptr->next = (job_t *)new_job;
-    return;
+	// First check that rmj is in queue
+	if (!job_is_in_queue(rmj, queue)) {
+		fprintf(stderr, "remove from queue: job (%s) is not in queue\n", j->name);
+		return -2;
+	}
+	
+	// Walk and update the linked list
+	job_t *p = *queue;
+	if (jobs_equal(p, rmj)) {
+		// Modify queue to point to second queue element
+		*queue = (*queue)->next;
+		return 0;
+	}
+	while (p->next != NULL) {
+		// Decrement all preceding jobs' ll_size-s by 1
+		p->ll_size --;
+		job_t *c = p->next;
+		if (jobs_equal(c, rmj)) {
+			// Remove c
+			p->next = c->next;
+			return 0;
+		}
+	}
+	// This shouldn't happen
+	fprintf(stderr, "remove from queue: somehow missed job (%s) in queue!\n",
+			rmj->job_name);
+	return -2;
 }
 
-void enqueue_jobs_executing(void *gb_jobs, void *new_job){
-    global_jobs_t *global_jobs = (global_jobs_t *)gb_jobs;
+int enqueue_job(job_t *new_job, job_t **queue){
 
-    // edge: first item in the queue: 
-    if (global_jobs->__jobs_executing == NULL){
-        global_jobs->__jobs_executing = (job_t *)new_job;
-        return;
+    // Check for bad queue input
+    if (queue == NULL || *queue == NULL) {
+        return -1;
     } 
-    
-    job_t *last_job_ptr = global_jobs->__jobs_executing; 
-    while (last_job_ptr->next != NULL){
+	if (new_job == NULL) {
+		return -1;
+	}
+
+	// Ensure new_job is well-formed
+	new_job->ll_size = 0;
+  	new_job->next = NULL;
+
+	// Walk to end of queue, place job there
+    job_t *job_ptr = *queue;
+    while (job_ptr->next != NULL){
         // walk to the tail of the jobs list;
         // and change the pointer to point to the new_job
-        last_job_ptr = (job_t *)last_job_ptr->next;
+		job_ptr->ll_size++;
+        job_ptr = (job_t *)last_job_ptr->next;
     }
     // arrived at the last job; 
-    last_job_ptr->next = (job_t *)new_job;
-    return;
+	job_ptr->ll_size++;
+    job_ptr->next = new_job;
+
+    return 0;
+}
+
+int dequeue_job_from_queue(job_t **queue, job_t **j_dest)
+{
+	if (queue == NULL || *queue == NULL) {
+		fprintf(stderr, "Invalid queue as input to dequeue_job_from_queue\n");
+		return -1;
+	}
+	if (queue->ll_size < 1) {
+		// Can't dequeue!
+		fprintf(stderr, "Can't dequeue from job queue!\n");
+		return -1;
+	}
+	if (j_dest == NULL) {
+		// Can't save dequeued job
+		fprintf(stderr, "Invalid pointer to save dequeued job!\n");
+		return -1;
+	}
+
+	// Separate head of queue from rest of queue
+	*j_dest = *queue;
+
+	// Modify queue to point to second queue element
+	*queue = (*queue)->next;
+	(*j_dest)->ll_size = 0;
+	(*j_dest)->next = NULL;
+
+	return 0;
+
 }
 
 // TODO: Currently being unused
@@ -125,28 +181,19 @@ void free_queue(job_t *jobs_list){
     return;
 }
 
-/* TODO: Not thread-safe */
-void submit_job(void *gb_jobs, void *new_job, char *job_name){
-    global_jobs_t *global_jobs = (global_jobs_t *)gb_jobs;
-
-    memcpy(global_jobs->job_names[global_jobs->total_count], job_name,
-		   JOB_MEM_NAME_MAX_LEN);    
-
-    global_jobs->is_empty = 0;
-    global_jobs->total_count += 1;
-    return;
-}
 
 /* TODO: Not thread-safe */
-int peek_next_job_queued(void *gb_jobs, job_t **qd_job)
+int peek_job_queued_at_i(global_jobs_t *gb_jobs, job_t **qd_job, int i)
 {
 	global_jobs_t *gj = (global_jobs_t *)gb_jobs;
 
 	assert(gj != NULL);
 	assert(gj->total_count > 0);
+	assert(gj->total_count > i);
 
-	char *job_mem_name = &(gj->job_names[0]);
-
-	return get_job_struct(job_mem_name, qd_job);
+	// Grab the name from job_shm_names 
+	char *job_mem_name = &(gj->job_shm_names[i]);
+	
+	return get_shared_job(job_mem_name, qd_job);
 }
 

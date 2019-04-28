@@ -1,3 +1,4 @@
+#include <assert.h>				// assert()
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>           // for mode constants 
@@ -234,4 +235,19 @@ int build_shared_job(pid_t tid, const char *job_name,
 	*save_new_job = shm_job;
 	strncpy(copy_shm_name, job_shm_name, JOB_MEM_NAME_MAX_LEN);
 	return 0;
+}
+
+/* 
+ * Release memory mapped for shared_job pointed to by shared_job_ptr
+ * Return 0 on success, negative on error
+ */
+int destroy_shared_job(job_t **shared_job_ptr) {
+	if (shared_job_ptr && *shared_job_ptr) {
+		int res;
+		if ((res = munmap(*shared_job_ptr, sizeof(job_t))) == 0) {
+			*shared_job_ptr = NULL;
+		} 
+		return res;
+	} 
+	return -2;
 }

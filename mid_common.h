@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdio.h> 		// *printf
 #include <assert.h>		// assert()
 #include "mid_structs.h" // global_jobs_t
 // ------------------------ Defines ------------------------
@@ -38,6 +39,7 @@ int build_shared_job(pid_t tid, const char *job_name,
 						enum job_type req_type,
 						job_t **save_new_job,
 						char *copy_shm_name);
+int destroy_shared_job(job_t **shared_job_ptr);
 
 #endif
 

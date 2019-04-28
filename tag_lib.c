@@ -1,11 +1,11 @@
-#include <iostream>
-
 #include <time.h>       /* time_t */
+#include <sys/mman.h>  /* shm_unlink, munmap */
 #include <sys/types.h> /* pid_t */
-#include <functional> /*std::functional*/
-#include <cstring> /* strncpy */
+#include <err.h>		// err
 #include "tag_gpu.h" /* tag_begin, tag_end */
-
+#include "mid_structs.h" /* global_jobs_t, job_t, JOB_MEM_NAME_MAX_LEN */
+#include "mid_common.h"	/* build/destroy_shared_job */
+#include "mid_queue.h" /* submit_job */
 
 /*
  * TODO: Interface v2.0
@@ -17,6 +17,14 @@
  * - marks shared job as COMPLETED, unmaps job from local address space
  */
 
+#define TAG_DEBUG_FN(fn, ...) \
+{\
+	int res;\
+	if ((res = fn(__VA_ARGS__)) < 0) { \
+		fprintf(stderr, "TAG_DEBUG_FN: %s returned %d!\n", #fn, res);\
+		assert(false);\
+	}\
+}
 
 static int gb_fd = 0;
 static global_jobs_t *gb_jobs = NULL;
@@ -33,13 +41,13 @@ int tag_begin(pid_t tid, const char* unit_name,
 		) {
 	/* First, init global jobs if not already */
 	if (gb_jobs == NULL) {
-		DEBUG_FN(init_global_jobs, &fd, &gb_jobs);
+		TAG_DEBUG_FN(init_global_jobs, &gb_fd, &gb_jobs);
 	}
 
 	/* Next, build a job_t in shared memory at shared memory location */
 	char job_shm_name[JOB_MEM_NAME_MAX_LEN];
 	job_t *tagged_job;	
-	DEBUG_FN(build_shared_job, tid, unit_name, 
+	TAG_DEBUG_FN(build_shared_job, tid, unit_name, 
 			last_peak_mem, avg_peak_mem, worst_peak_mem,
 			last_exec_time, avg_exec_time, worst_exec_time,
 			run_count, deadline, QUEUED,
@@ -48,23 +56,35 @@ int tag_begin(pid_t tid, const char* unit_name,
 
 
 	/* Enqueue name of shared memory object holding job_t using middleaware interface */
+	fprintf(stdout, "Client submitting job to server\n");
 	submit_job(gb_jobs, tagged_job, job_shm_name);
 
 	/* Cond_wait on job_t (SHARED PROCESS) condition variable, will wake when server notifies */
+	fprintf(stdout, "Client cond waiting\n");
 	pthread_cond_wait(&(tagged_job->client_wake), &(tagged_job->own_job));
+	fprintf(stdout, "Client thread woke up! Exec flag %d\n",\
+			tagged_job->client_exec_allowed);
 	// Awake, it's fine to unlock own_job
 	pthread_mutex_unlock(&(tagged_job->own_job));
 
-	/* On wake, unlink this shared memory, removing clients reference to shm object */	
-	DEBUG_FN(shm_unlink, job_shm_name);
+	// Save exec flag
+	bool exec_allowed = tagged_job->client_exec_allowed;
+
+	/* On wake, unlink and unmap this shared memory, 
+	 * removing clients reference to shm object */	
+	//shm_unlink(job_shm_name); // TODO not doing anything
+	fprintf(stdout, "Destroying shared job\n");
+	TAG_DEBUG_FN(destroy_shared_job, &tagged_job);
+	fprintf(stdout, "Destroyed shared job\n");
 
 	/* check execution flag - return 0 on success (can run) or -1 on error
 	 * or unallowed to run.
 	 */
-	if (!tagged_job->client_exec_allowed){
+	if (!exec_allowed){
 		fprintf(stderr, "(TID: %d) Aborting job with name %s!\n", tid, unit_name);
 		return -1;
 	} else {
+		fprintf(stdout, "Client continuing ...\n");
 		return 0;
 	}
 }
@@ -78,70 +98,30 @@ int tag_begin(pid_t tid, const char* unit_name,
 int tag_end(pid_t tid, const char *unit_name) {
 	char job_shm_name[JOB_MEM_NAME_MAX_LEN];
 	job_t *tagged_job;	
-	DEBUG_FN(build_shared_job, tid, unit_name, 
-			last_peak_mem, avg_peak_mem, worst_peak_mem,
-			last_exec_time, avg_exec_time, worst_exec_time,
-			run_count, deadline, COMPLETED,
+	fprintf(stdout, "Client finished work, communicating to server\n");
+	TAG_DEBUG_FN(build_shared_job, tid, unit_name, 
+			0L, 0L, 0L,	
+			0.0, 0.0, 0.0,
+			0, 0, COMPLETED,
 			&tagged_job,
 			job_shm_name);
 
-
 	/* Enqueue name of shared memory object holding job_t using middleaware interface */
+	fprintf(stdout, "Client submitting COMPLETED job to server\n");
 	submit_job(gb_jobs, tagged_job, job_shm_name);
 
 	/* Cond_wait on job_t (SHARED PROCESS) condition variable, will wake when server notifies */
+	fprintf(stdout, "Client cond waiting\n");
 	pthread_cond_wait(&(tagged_job->client_wake), &(tagged_job->own_job));
+	fprintf(stdout, "Client thread woke up! Exec flag %d\n",\
+			tagged_job->client_exec_allowed);
 	// Awake, it's fine to unlock own_job
 	pthread_mutex_unlock(&(tagged_job->own_job));
 
 	/* On wake, unlink this shared memory, removing clients reference to shm object */	
-	DEBUG_FN(shm_unlink, job_shm_name);
+	shm_unlink(job_shm_name); // TODO: not doing anything
 
+	/* Unmap the shared job built for server on clientside */
+	TAG_DEBUG_FN(destroy_shared_job, &tagged_job);
 	return 0;
-}
-
-/*
- * From stack overflow:
- * https://stackoverflow.com/questions/30679445/python-like-c-decorators 
- */
-template <class> struct TagDecorator;
-
-template <class R, class... Args>
-struct TagDecorator<R(Args ...)>
-{
-	std::function<R(Args ...)> f_;
-	pid_t tid;
-	const char *work_name;
-	time_t deadline;
-
-    TagDecorator(std::function<R(Args ...)> f, 
-			     pid_t tid, const char *work_name,
-			     time_t deadline=0L) : 
-			 f_(f), tid(tid), work_name(work_name){}
-
-    R operator()(Args ... args)
-	{
-		std::cout << "Calling the decorated function.\n";
-
-		if (tag_begin(...) == 0) {
-			// This runs when server allows
-			R res = f_(args...);
-
-			// Notify server of end of work
-			tag_end(...);
-			return res;
-		} else {
-			// Job is aborted, raise error for client 
-			fprintf(stderr, "Job (%s) was aborted! Raising SIGSEGV!\n", work_name);
-			raise(SIGSEGV);
-		}
-    }
-};
-
-template<class R, class... Args>
-TagDecorator<R(Args...)> tag_decorator(R (*f)(Args ...),
-									   pid_t tid,
-									   const char *work_name)
-{
-	return TagDecorator<R(Args...)>(std::function<R(Args...)>(f), tid, work_name);
 }

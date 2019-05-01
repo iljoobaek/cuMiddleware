@@ -25,7 +25,7 @@ int init_global_jobs(int *fd, global_jobs_t **addr)
         perror("ftruncate");
     }
 
-    *addr = mmap(  NULL,
+    *addr = (global_jobs_t *)mmap(  NULL,
                         GLOBAL_MEM_SIZE,
                         PROT_READ|PROT_WRITE,
                         MAP_SHARED,
@@ -38,7 +38,7 @@ int init_global_jobs(int *fd, global_jobs_t **addr)
     }
 
 	/* Initialize the global_jobs_t struct in shared memory */
-	global_jobs_t *gj = (global_jobs_t *) (*addr);
+	global_jobs_t *gj = *addr;
 	gj->is_active = 1;
 	gj->total_count = 0;
 	// Zero out the job_shm_names array
@@ -110,7 +110,8 @@ int get_shared_job(const char *name, job_t **save_job)
     }
 
 	// Mmap the job_t object stored in shared memory
-	job_t *shm_job = mmap(  NULL,
+	job_t *shm_job = (job_t *)
+						mmap(  NULL,
                         sizeof(job_t),
                         PROT_READ|PROT_WRITE,
                         MAP_SHARED,
@@ -210,7 +211,8 @@ int build_shared_job(pid_t tid, const char *job_name,
 
 
 	// Mmap the job_t object stored in shared memory
-	job_t *shm_job = mmap(  NULL,
+	job_t *shm_job = (job_t *)
+						mmap(  NULL,
                         sizeof(job_t),
                         PROT_READ|PROT_WRITE,
                         MAP_SHARED,

@@ -230,30 +230,6 @@ extern "C"
 		const char *kern_name = HACK_GET_KERN_NAME(f);	
 		fprintf(stderr, "Retrieved kernel name from CUfunction f, %s\n", kern_name);
 
-		// Next, init global memory mapping for global jobs queue
-		if (!global_jobs_q)
-		{
-			int res;
-			if ((res = mmap_global_jobs_queue(&jobs_q_fd, (void**)&global_jobs_q)) < 0)
-			{
-				fprintf(stderr, "Failed to mmap global jobs queue!\n");
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		// Queue job to server
-		int res;
-		if ((res = queue_job_to_server(getpid(), kern_name, global_jobs_q)) < 0)
-		{
-			fprintf(stderr, "Failed to queue job to server!\n");
-			exit(EXIT_FAILURE);
-		}
-		
-		// Pause this thread, hopefully will get killed by middleware
-		fprintf(stderr, "Tensorflow thread raising SIGSTOP\n");
-		raise(SIGSTOP);
-		fprintf(stderr, "Tensorflow thread woke up! Continuing ...\n");
-
 		return realCLK_dr(f, 
 							gridDimX, gridDimY, gridDimZ,
 							blockDimX, blockDimY, blockDimZ,
@@ -347,28 +323,6 @@ extern "C"
 				real_ ## funcname = (fn_ ## funcname)\
 					real_dlsym(RTLD_NEXT, CUDA_SYMBOL_STRING(funcname));\
 			}\
-			/* Next, ensure global memory mapping is init for global jobs queue */\
-			if (!global_jobs_q) \
-			{ \
-				int res;\
-				if ((res = mmap_global_jobs_queue(&jobs_q_fd, (void**)&global_jobs_q)) < 0)\
-				{\
-					fprintf(stderr, "Failed to mmap global jobs queue!\n");\
-					exit(EXIT_FAILURE);\
-				}\
-			}\
-			/* Queue job to server */\
-			int res;\
-			if ((res = queue_job_to_server(getpid(), #funcname, global_jobs_q)) < 0) \
-			{\
-				fprintf(stderr, "Failed to queue job to server!\n");\
-				exit(EXIT_FAILURE);\
-			}\
-			/* Pause this thread, wait to be continued by middleware */ \
-			fprintf(stderr, "Tensorflow thread raising SIGSTOP\n");\
-			raise(SIGSTOP);\
-			fprintf(stderr, "Tensorflow thread woke up! Continuing ... \n");\
-			\
 			/* Lastly, for now we can call the function from the client */\
 			return real_ ## funcname(__VA_ARGS__);\
 		}

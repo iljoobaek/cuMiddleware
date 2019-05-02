@@ -1,5 +1,11 @@
 To run:
 
-$ make;
+`$ make test_server;`
 
-In 2 screens/terminals, run $ ./mid in one and any CUDA/cuBLAS client (Python or C++) in the other.
+Compiling with tag_lib is not yet portable, so you have to have a Makefile target like:
+
+```
+test_tag.o: test_tag.c tag_lib.o common.o mid_queue.o
+	$(GCC) $(MIDFLAGS) -o test_tag.o test_tag.c tag_lib.o common.o mid_queue.o $(MID_LOAD)
+```
+

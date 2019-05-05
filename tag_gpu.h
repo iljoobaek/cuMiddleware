@@ -3,6 +3,28 @@
 
 #include <stdint.h> // uint64_t
 #include <time.h> // time_t
+#include "mid_structs.h" // MAX_NAME_LENGTH
+
+/* Meta-data structs that describe stats for a repeated job_t struct */
+typedef struct meta_job {
+	// job_t metadata
+    pid_t tid;                      // tid (since client may be multithreaded)
+    int priority;
+
+	char job_name[MAX_NAME_LENGTH];
+    uint64_t last_peak_mem;			// In bytes
+	uint64_t avg_peak_mem;
+	uint64_t worst_peak_mem;
+    double last_exec_time;
+   	double avg_exec_time;
+    double worst_exec_time;
+	unsigned int run_count;
+	time_t deadline;
+
+	// running metadata fields
+	uint64_t c_mem_util;
+} meta_job_t;
+
 
 /*
  * In order to communicate GPU execution metadata and intent to server,

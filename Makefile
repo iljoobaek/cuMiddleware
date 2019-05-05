@@ -26,6 +26,9 @@ test_mid.o: test_mid.c mid_queue.o common.o
 test_tag.o: test_tag.c tag_lib.o common.o mid_queue.o
 	$(GCC) $(MIDFLAGS) -o test_tag.o test_tag.c tag_lib.o common.o mid_queue.o $(MID_LOAD)
 
+test_dec: test_tag_dec.cpp tag_dec.cpp tag_lib.o common.o mid_queue.o
+	$(CXX) $(MIDFLAGS) -std=c++11 -o test_dec test_tag_dec.cpp tag_dec.cpp tag_lib.o common.o mid_queue.o $(MID_LOAD)
+
 mid: mymid.c mid_queue.o common.o
 	$(GCC) $(MIDFLAGS) -o mid common.c mymid.c mid_queue.c $(MID_LOAD)
 

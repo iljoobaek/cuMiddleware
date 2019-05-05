@@ -1,60 +1,34 @@
-#include <time.h>       /* time_t */
 #include <sys/types.h> /* pid_t */
-#include <cstring> /* strncpy */
-#include <functional> /*std::functional*/
-#include "tag_gpu.h" /* tag_begin, tag_end */
+#include <mutex> /* std::unique_lock, std::mutex */
+#include <unordered_map> // unordered_map
 
-/*
- * From stack overflow:
- * https://stackoverflow.com/questions/30679445/python-like-c-decorators 
- */
-template <class> struct TagDecorator;
+#include "tag_dec.h" // *_running_meta_job_for_tid, TagDecorator<R(Args...)>, tag_decorator()
+#include "tag_gpu.h" /* meta_job_t */
 
-template <class R, class... Args>
-struct TagDecorator<R(Args ...)>
-{
-	std::function<R(Args ...)> f_;
-	pid_t tid;
-	const char *work_name;
-	uint64_t last_peak_mem;
-	uint64_t avg_peak_mem;
-	uint64_t worst_peak_mem;
-	double last_exec_time;
-	double avg_exec_time;
-	double worst_exec_time; 
-	unsigned int run_count;
-	time_t deadline;
-	job_t *shm_job;
+static std::mutex hm_lock;
+static std::unordered_map<pid_t, meta_job_t *> g_tid_curr_job;
 
-    TagDecorator(std::function<R(Args ...)> f, 
-			     pid_t tid, const char *work_name,
-			     time_t deadline=0L) : 
-			 f_(f), tid(tid), work_name(work_name){}
+/* Interface for getting meta_job_t from g_tid_curr_job */
+meta_job_t *get_running_meta_job_for_tid(pid_t tid) {
+	// Use unique_lock to manage hashmap lock
+	std::unique_lock<std::mutex> lck;
+	lck = std::unique_lock<std::mutex>(hm_lock); // Locks on construction
 
-    R operator()(Args ... args)
-	{
-		std::cout << "Calling the decorated function.\n";
+	if (g_tid_curr_job.find(tid) == g_tid_curr_job.end()) {
+		return NULL;
+	} else {
+		return g_tid_curr_job[tid];
+	}
+	// Unlocks mutex on destruction
+}
 
-		if (tag_begin(...) == 0) {
-			// This runs when server allows
-			R res = f_(args...);
+int set_running_job_for_tid(pid_t tid, meta_job_t *mj) {
+	// Use unique_lock to manage hashmap lock
+	std::unique_lock<std::mutex> lck;
+	lck = std::unique_lock<std::mutex>(hm_lock); // Locks on construction
 
-			// Notify server of end of work
-			tag_end(...);
-			return res;
-		} else {
-			// Job is aborted, raise error for client 
-			fprintf(stderr, "Job (%s) was aborted! Raising SIGSEGV!\n", work_name);
-			raise(SIGSEGV);
-		}
-    }
-};
-
-template<class R, class... Args>
-TagDecorator<R(Args...)> tag_decorator(R (*f)(Args ...),
-									   pid_t tid,
-									   const char *work_name)
-{
-	return TagDecorator<R(Args...)>(std::function<R(Args...)>(f), tid, work_name);
+	g_tid_curr_job[tid] = mj;
+	return 0;
+	// Unlocks on destruction
 }
 

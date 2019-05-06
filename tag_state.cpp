@@ -1,8 +1,9 @@
+#include <cstring> /* memcpy */
 #include <sys/types.h> /* pid_t */
 #include <mutex> /* std::unique_lock, std::mutex */
 #include <unordered_map> // unordered_map
 
-#include "tag_dec.h" // *_running_meta_job_for_tid, TagDecorator<R(Args...)>, tag_decorator(), TagState class
+#include "tag_state.h" // *_running_meta_job_for_tid, TagState class
 #include "tag_gpu.h" /* meta_job_t */
 
 static std::mutex hm_lock;
@@ -140,4 +141,45 @@ void TagState::end_timer() {
 }
 
 
+/* Implement the C-exposed interface for TagState objects */
+#ifdef __cplusplus
+extern "C" {
+#endif 
+void *CreateTagStateObj(const meta_job_t *inp_init_meta_job) {
+	return reinterpret_cast<void *>(new TagState(inp_init_meta_job));
+}
+void DestroyTagStateObj(void *tag_obj) {
+	delete reinterpret_cast<TagState *>(tag_obj);
+}
+meta_job_t *TagState_get_local_meta_job_for_tid(void *tag_obj, pid_t tid) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_local_meta_job_for_tid(tid);
+}
+int TagState_tag_end_from_meta_job(void *tag_obj, meta_job_t *mj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->tag_end_from_meta_job(mj);
+}
+int TagState_tag_begin_from_meta_job(void *tag_obj, meta_job_t *mj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->tag_begin_from_meta_job(mj);
+}
+int TagState_acquire_gpu(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->acquire_gpu();
+}
+int TagState_release_gpu(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->release_gpu();
+}
+void TagState_start_timer(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->start_timer();
+}
+void TagState_end_timer(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->end_timer();
+}
+#ifdef __cplusplus
+}
+#endif 
 

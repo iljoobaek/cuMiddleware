@@ -27,8 +27,8 @@ libmid.so: mid_queue.o common.o
 tag_lib.o: tag_lib.c
 	$(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tag_lib.o tag_lib.c -c
 
-tag_dec.o: tag_dec.cpp
-	$(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o tag_dec.o tag_dec.cpp -c 
+tag_state.o: tag_state.cpp
+	$(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o tag_state.o tag_state.cpp -c 
 
 test_mid.o: test_mid.c libmid.so
 	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o test_mid.o test_mid.c $(LOAD_MID)
@@ -36,14 +36,14 @@ test_mid.o: test_mid.c libmid.so
 run_test_mid: test_mid.o
 	$(EDIT_LD_PATH) ./test_mid.o;
 
-test_tag.o: test_tag.c tag_lib.o
+test_tag.o: test_tag.c tag_lib.o libmid.so
 	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o test_tag.o test_tag.c tag_lib.o $(LOAD_MID)
 
 run_test_tag: test_tag.o 
 	$(EDIT_LD_PATH) ./test_tag.o;
 
-test_tag_dec.o: test_tag_dec.cpp tag_dec.o tag_lib.o libmid.so
-	$(EDIT_LD_PATH) $(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o test_tag_dec.o test_tag_dec.cpp tag_dec.o tag_lib.o $(LOAD_MID)
+test_tag_dec.o: test_tag_dec.cpp tag_state.o tag_lib.o libmid.so
+	$(EDIT_LD_PATH) $(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o test_tag_dec.o test_tag_dec.cpp tag_state.o tag_lib.o $(LOAD_MID)
 
 run_test_tag_dec: test_tag_dec.o
 	$(EDIT_LD_PATH) ./test_tag_dec.o

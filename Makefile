@@ -1,3 +1,4 @@
+ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 GCC=gcc
 CXX=g++
 CUDAPATH?=/usr/local/cuda-10.0
@@ -5,35 +6,55 @@ CUDAPATH?=/usr/local/cuda-10.0
 all: libcuhook.so mid tag_lib.o
 
 SHAREDFLAGS=-Wall -fPIC -shared -ldl -g -lrt
+INCL_FLAGS=-I./include
 MIDFLAGS=-Wall -g -Wl,--no-as-needed
+EDIT_LD_PATH=LD_LIBRARY_PATH=$(ROOT_DIR)/lib
+LOAD_MID=-Llib -lmid -lpthread -lrt
 MID_LOAD=-lpthread -lrt
 
 libcuhook.so: wrapcuda.cpp common.c mid_queue.c
-	$(CXX) -I$(CUDAPATH)/include -o libcuhook.so wrapcuda.cpp common.c mid_queue.c $(SHAREDFLAGS)
+	$(CXX) $(INCL_FLAGS) -I$(CUDAPATH)/include -o lib/libcuhook.so wrapcuda.cpp common.c mid_queue.c $(SHAREDFLAGS)
 
 common.o: common.c
-	$(GCC) $(MIDFLAGS) -o common.o common.c $(MID_LOAD) -c
+	$(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o common.o common.c -c -fPIC
 
 mid_queue.o: mid_queue.c
-	$(GCC) $(MIDFLAGS) -o mid_queue.o mid_queue.c -c
+	$(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o mid_queue.o mid_queue.c -c -fPIC
 
-tag_lib.o: tag_lib.c mid_queue.o common.o
-	$(GCC) $(MIDFLAGS) -o tag_lib.o tag_lib.c mid_queue.o common.o $(MID_LOAD) -c
+libmid.so: mid_queue.o common.o
+	$(GCC) $(INCL_FLAGS) -shared -o lib/libmid.so mid_queue.o common.o
 
-test_mid.o: test_mid.c mid_queue.o common.o
-	$(GCC) $(MIDFLAGS) -o test_mid.o test_mid.c mid_queue.o common.o $(MID_LOAD)
+tag_lib.o: tag_lib.c
+	$(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tag_lib.o tag_lib.c -c
 
-test_tag.o: test_tag.c tag_lib.o common.o mid_queue.o
-	$(GCC) $(MIDFLAGS) -o test_tag.o test_tag.c tag_lib.o common.o mid_queue.o $(MID_LOAD)
+tag_dec.o: tag_dec.cpp
+	$(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o tag_dec.o tag_dec.cpp -c 
 
-test_dec: test_tag_dec.cpp tag_dec.cpp tag_lib.o common.o mid_queue.o
-	$(CXX) $(MIDFLAGS) -std=c++11 -o test_dec test_tag_dec.cpp tag_dec.cpp tag_lib.o common.o mid_queue.o $(MID_LOAD)
+test_mid.o: test_mid.c libmid.so
+	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o test_mid.o test_mid.c $(LOAD_MID)
+
+run_test_mid: test_mid.o
+	$(EDIT_LD_PATH) ./test_mid.o;
+
+test_tag.o: test_tag.c tag_lib.o
+	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o test_tag.o test_tag.c tag_lib.o $(LOAD_MID)
+
+run_test_tag: test_tag.o 
+	$(EDIT_LD_PATH) ./test_tag.o;
+
+test_tag_dec.o: test_tag_dec.cpp tag_dec.o tag_lib.o libmid.so
+	$(EDIT_LD_PATH) $(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o test_tag_dec.o test_tag_dec.cpp tag_dec.o tag_lib.o $(LOAD_MID)
+
+run_test_tag_dec: test_tag_dec.o
+	$(EDIT_LD_PATH) ./test_tag_dec.o
 
 mid: mymid.c mid_queue.o common.o
-	$(GCC) $(MIDFLAGS) -o mid common.c mymid.c mid_queue.c $(MID_LOAD)
+	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o mid common.c mymid.c mid_queue.c $(MID_LOAD)
 
-test_server: mid test_tag.o
+runmid: mid
+	$(EDIT_LD_PATH) ./mid;
 
 clean:
-	rm -rf libcuhook.so mid
+	rm -rf mid test_tag_dec test_tag
 	rm -rf *.o
+	rm -rf lib/*.so

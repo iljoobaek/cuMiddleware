@@ -2,10 +2,13 @@
 #include <sys/mman.h>  /* shm_unlink, munmap */
 #include <sys/types.h> /* pid_t */
 #include <err.h>		// err
+#include <string.h>	// strncpy
+#include <stdlib.h> // malloc, free
 #include "tag_gpu.h" /* tag_begin, tag_end */
 #include "mid_structs.h" /* global_jobs_t, job_t, JOB_MEM_NAME_MAX_LEN */
 #include "mid_common.h"	/* build/destroy_shared_job */
 #include "mid_queue.h" /* submit_job */
+#include "tag_gpu.h" // fn's defined in this file
 
 /*
  * TODO: Interface v2.0
@@ -28,6 +31,31 @@
 
 static int gb_fd = 0;
 static global_jobs_t *gb_jobs = NULL;
+
+/* Implement interface for meta_job struct */
+meta_job_t *CreateMetaJob(pid_t tid, int priority, const char *job_name, 
+		uint64_t lpm, uint64_t apm, uint64_t wpm,
+		double let, double aet, double wet,
+		unsigned int run_count, time_t deadline) {
+	meta_job_t *mj = (meta_job_t *)calloc(0, sizeof (meta_job_t));
+	mj->tid = tid;
+	strncpy(mj->job_name, job_name, JOB_MEM_NAME_MAX_LEN);
+	mj->last_peak_mem = lpm;
+	mj->avg_peak_mem = apm;
+	mj->worst_peak_mem = wpm;
+	mj->last_exec_time = let;
+	mj->avg_exec_time = aet;
+	mj->worst_exec_time = wet;
+	mj->run_count = run_count;
+	mj->deadline = deadline;
+	
+	return mj;
+}
+
+void DestroyMetaJob(meta_job_t *mj) {
+	free(mj);
+}
+
 
 int tag_begin(pid_t tid, const char* unit_name,
 			uint64_t last_peak_mem, 

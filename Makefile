@@ -22,13 +22,16 @@ mid_queue.o: mid_queue.c
 	$(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o mid_queue.o mid_queue.c -c -fPIC
 
 libmid.so: mid_queue.o common.o
-	$(GCC) $(INCL_FLAGS) -shared -o lib/libmid.so mid_queue.o common.o
+	$(GCC) -shared -o lib/libmid.so mid_queue.o common.o
 
 tag_lib.o: tag_lib.c
-	$(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tag_lib.o tag_lib.c -c
+	$(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tag_lib.o tag_lib.c -c -fPIC
 
 tag_state.o: tag_state.cpp
-	$(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o tag_state.o tag_state.cpp -c 
+	$(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o tag_state.o tag_state.cpp -c -fPIC
+
+libpytag.so: tag_state.o tag_lib.o libmid.so
+	$(EDIT_LD_PATH) $(CXX) -shared -o lib/libpytag.so tag_state.o tag_lib.o $(LOAD_MID)
 
 test_mid.o: test_mid.c libmid.so
 	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o test_mid.o test_mid.c $(LOAD_MID)

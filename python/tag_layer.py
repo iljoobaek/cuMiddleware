@@ -44,8 +44,11 @@ class MetaJobStruct(object):
             lpm=0, apm=0, wpm=0,
             let=0, aet=0, wet=0,
             run_count=0, deadline=0):
+        # Ensure that string is in bytes before passing as c_char_p
+        c_name = c_char_p(job_name.encode('utf-8'))
+
         self.mj = c_void_p(
-                    libpytag.CreateMetaJob(tid, priority, job_name,
+                    libpytag.CreateMetaJob(tid, priority, c_name,
                     lpm, apm, wpm, let, aet, wet,
                     run_count, deadline)
                     )

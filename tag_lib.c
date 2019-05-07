@@ -33,13 +33,13 @@ static int gb_fd = 0;
 static global_jobs_t *gb_jobs = NULL;
 
 /* Implement interface for meta_job struct */
-meta_job_t *CreateMetaJob(pid_t tid, int priority, const char *job_name, 
+void *CreateMetaJob(pid_t tid, int priority, const char *job_name, 
 		uint64_t lpm, uint64_t apm, uint64_t wpm,
 		double let, double aet, double wet,
 		unsigned int run_count, time_t deadline) {
-	meta_job_t *mj = (meta_job_t *)calloc(0, sizeof (meta_job_t));
+	meta_job_t *mj = (meta_job_t *)calloc(1, sizeof (meta_job_t));
 	mj->tid = tid;
-	strncpy(mj->job_name, job_name, JOB_MEM_NAME_MAX_LEN);
+	strncpy(&(mj->job_name[0]), job_name, JOB_MEM_NAME_MAX_LEN);
 	mj->last_peak_mem = lpm;
 	mj->avg_peak_mem = apm;
 	mj->worst_peak_mem = wpm;
@@ -49,10 +49,10 @@ meta_job_t *CreateMetaJob(pid_t tid, int priority, const char *job_name,
 	mj->run_count = run_count;
 	mj->deadline = deadline;
 	
-	return mj;
+	return (void *)mj;
 }
 
-void DestroyMetaJob(meta_job_t *mj) {
+void DestroyMetaJob(void *mj) {
 	free(mj);
 }
 

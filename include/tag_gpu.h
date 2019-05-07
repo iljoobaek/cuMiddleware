@@ -29,11 +29,11 @@ typedef struct meta_job {
 #ifdef __cplusplus
 extern "C" {
 #endif
-meta_job_t *CreateMetaJob(pid_t tid, int priority, const char *job_name, 
+void *CreateMetaJob(pid_t tid, int priority, const char *job_name, 
 		uint64_t lpm, uint64_t apm, uint64_t wpm,
 		double let, double aet, double wet,
 		unsigned int run_count, time_t deadline);
-void DestroyMetaJob(meta_job_t *mj);
+void DestroyMetaJob(void *mj);
 #ifdef __cplusplus
 }
 #endif

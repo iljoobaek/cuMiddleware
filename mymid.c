@@ -63,7 +63,9 @@ int job_release_gpu(job_t *comp_job) {
 		return -2;
 	}
 	
-	gpu_memory_available += comp_job->worst_peak_mem;
+	// Acquired memory
+	int acquired_mem = comp_job->worst_peak_mem ? comp_job->worst_peak_mem : max_gpu_memory_available;
+	gpu_memory_available += acquired_mem;
 	return 0;
 }
 
@@ -85,6 +87,7 @@ int job_acquire_gpu(job_t *j) {
 		// This job has never run before, needs to run exclusively
 		if (max_gpu_memory_available > 0 &&\
 				gpu_memory_available == max_gpu_memory_available) {
+			gpu_memory_available = 0;
 			return 0;
 		}
 		// Something wrong with max_gpu_memory available

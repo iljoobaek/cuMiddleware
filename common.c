@@ -1,9 +1,9 @@
 #include <assert.h>				// assert()
 #include <sys/types.h>
 #include <sys/mman.h>
-#include <sys/stat.h>           // for mode constants 
+#include <sys/stat.h>           // for mode constants
 #include <errno.h>
-#include <unistd.h>          
+#include <unistd.h>
 #include <fcntl.h>              // for O_ constants, such as "O_RDWR"
 #include <string.h>				// memset(), strncpy
 #include <stdio.h>				// *printf, perror
@@ -14,7 +14,7 @@ int init_global_jobs(int *fd, global_jobs_t **addr)
 {
 	// Get fd for shared GLOBAL_MEM_SIZE memory region
     errno = 0;              //  automatically set when error occurs
-    *fd = shm_init(GLOBAL_MEM_NAME); 
+    *fd = shm_init(GLOBAL_MEM_NAME);
     if (*fd == -1){
         perror("[Error] in mmap_global_jobs_queue: shm_init failed");
         return -1;
@@ -52,38 +52,38 @@ int init_global_jobs(int *fd, global_jobs_t **addr)
 	(void) pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
 
 	(void) pthread_mutex_init(&(gj->requests_q_lock), &mutex_attr);
-	
+
 	return 0;
 }
 
-// helper functions for creating space in shared memory: 
+// helper functions for creating space in shared memory:
 // shm_init: returns the file descriptor after creating a shared memory. returns
-//  -1 on error; 
+//  -1 on error;
 int shm_init(const char *name){
     errno = 0;              //  automatically set when error occurs
-    // open/create POSIX shared memory; if it doesn't exist, create one. 
+    // open/create POSIX shared memory; if it doesn't exist, create one.
     int fd;
-    fd = shm_open(name, O_RDWR, 0660); 
+    fd = shm_open(name, O_RDWR, 0660);
     if (errno == ENOENT){
-        fprintf(stdout, "[INFO] shared memory is intialized for the first time\n");
+        //fprintf(stdout, "[INFO] shared memory is intialized for the first time\n");
         fd = shm_open(name, O_RDWR|O_CREAT, 0660);
     }
     if (fd == -1){
         perror("[Error] in shm_init: shm_open");
         return -1;
     }
-    
+
     return fd;
 }
 
 /* shm_destroy: close the file descriptor, and unlink shared memory;
 * returns 0 if successful, -1 otherwise
-*/ 
+*/
 int shm_destroy(const char *name, int fd) {
     // close the file descriptor
     if (close(fd)){
         perror("[Error] in shm_destroy: closing file descriptor");
-        return -1; 
+        return -1;
     }
     // unlink shared memory
     if (shm_unlink(name)){
@@ -98,7 +98,7 @@ int get_shared_job(const char *name, job_t **save_job)
 {
 	// Get fd for shared memory region designated by name
     errno = 0;              //  automatically set when error occurs
-    int fd = shm_init(name); 
+    int fd = shm_init(name);
     if (fd == -1){
         perror("[Error] in get_shared_job: shm_init failed");
         return -1;
@@ -123,11 +123,11 @@ int get_shared_job(const char *name, job_t **save_job)
         return -1;
     }
 
-	// Client opened the shared memory, it should still have a reference to 
+	// Client opened the shared memory, it should still have a reference to
 	// This only destroys local connection to shared memory object
 	shm_destroy(name, fd);
 	*save_job = shm_job;
- 	return 0;	
+ 	return 0;
 }
 
 bool jobs_equal(job_t *a, job_t *b) {
@@ -145,7 +145,7 @@ int build_job(pid_t tid, const char *job_name,
 						job_t *shm_job) {
 	// Fail on bad mapped job
 	if (!shm_job) return -1;
-	
+
 	// Init job with metadata
 	shm_job->tid = tid;
 	shm_job->priority = 0; // TODO
@@ -180,7 +180,7 @@ int build_job(pid_t tid, const char *job_name,
 	shm_job->ll_size = 1;
 	shm_job->next = NULL;
 
- 	return 0;	
+ 	return 0;
 }
 
 int build_shared_job(pid_t tid, const char *job_name,
@@ -195,15 +195,15 @@ int build_shared_job(pid_t tid, const char *job_name,
 	char job_shm_name[JOB_MEM_NAME_MAX_LEN];
 	sprintf(job_shm_name, "%s_%d", job_name, tid);
 
-	// Get fd for shared memory region designated 
+	// Get fd for shared memory region designated
     errno = 0;              //  automatically set when error occurs
-    int fd = shm_init(job_shm_name); 
+    int fd = shm_init(job_shm_name);
     if (fd == -1){
         perror("[Error] in get_shared_job: shm_init failed");
         return -1;
     }
 
-	// Init job_t-sized shm object 
+	// Init job_t-sized shm object
     if (ftruncate(fd, sizeof(job_t)) != 0) {
 		close(fd);
         perror("ftruncate");
@@ -226,7 +226,7 @@ int build_shared_job(pid_t tid, const char *job_name,
         perror("[Error] in mmap_global_jobs_queue: mmap");
         return -1;
     }
-	
+
 	// Save job and job_shm_name for caller
 	DEBUG_FN(build_job, tid, job_name,
 						lpm, apm, wpm,
@@ -239,7 +239,7 @@ int build_shared_job(pid_t tid, const char *job_name,
 	return 0;
 }
 
-/* 
+/*
  * Release memory mapped for shared_job pointed to by shared_job_ptr
  * Return 0 on success, negative on error
  */
@@ -248,8 +248,8 @@ int destroy_shared_job(job_t **shared_job_ptr) {
 		int res;
 		if ((res = munmap(*shared_job_ptr, sizeof(job_t))) == 0) {
 			*shared_job_ptr = NULL;
-		} 
+		}
 		return res;
-	} 
+	}
 	return -2;
 }

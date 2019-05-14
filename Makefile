@@ -33,23 +33,28 @@ tag_state.o: tag_state.cpp
 libpytag.so: tag_state.o tag_lib.o libmid.so
 	$(EDIT_LD_PATH) $(CXX) -shared -o lib/libpytag.so tag_state.o tag_lib.o $(LOAD_MID)
 
-test_mid.o: test_mid.c libmid.so
-	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o test_mid.o test_mid.c $(LOAD_MID)
+test_mid.o: tests/test_mid.c libmid.so
+	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tests/test_mid.o tests/test_mid.c $(LOAD_MID)
 
-run_test_mid: test_mid.o
-	$(EDIT_LD_PATH) ./test_mid.o;
+test_app: tests/app1.c tests/app2.c tag_lib.o libmid.so
+	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tests/app1.o tests/app1.c tag_lib.o $(LOAD_MID)
+	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tests/app2.o tests/app2.c tag_lib.o $(LOAD_MID)
 
-test_tag.o: test_tag.c tag_lib.o libmid.so
-	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o test_tag.o test_tag.c tag_lib.o $(LOAD_MID)
+
+run_test_mid: tests/test_mid.o
+	$(EDIT_LD_PATH) ./tests/test_mid.o;
+
+test_tag.o: tests/test_tag.c tag_lib.o libmid.so
+	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tests/test_tag.o tests/test_tag.c tag_lib.o $(LOAD_MID)
 
 run_test_tag: test_tag.o 
-	$(EDIT_LD_PATH) ./test_tag.o;
+	$(EDIT_LD_PATH) ./tests/test_tag.o;
 
-test_tag_dec.o: test_tag_dec.cpp tag_state.o tag_lib.o libmid.so
-	$(EDIT_LD_PATH) $(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o test_tag_dec.o test_tag_dec.cpp tag_state.o tag_lib.o $(LOAD_MID)
+test_tag_dec.o: tests/test_tag_dec.cpp tag_state.o tag_lib.o libmid.so
+	$(EDIT_LD_PATH) $(CXX) $(INCL_FLAGS) $(MIDFLAGS) -std=c++11 -o tests/test_tag_dec.o tests/test_tag_dec.cpp tag_state.o tag_lib.o $(LOAD_MID)
 
-run_test_tag_dec: test_tag_dec.o
-	$(EDIT_LD_PATH) ./test_tag_dec.o
+run_test_tag_dec: tests/test_tag_dec.o
+	$(EDIT_LD_PATH) ./tests/test_tag_dec.o
 
 mid: mymid.c mid_queue.o common.o
 	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o mid common.c mymid.c mid_queue.c $(MID_LOAD)
@@ -58,6 +63,7 @@ runmid: mid
 	$(EDIT_LD_PATH) ./mid;
 
 clean:
-	rm -rf mid test_tag_dec test_tag
+	rm -rf mid tests/test_tag_dec tests/test_tag
 	rm -rf *.o
+	rm -rf ./tests/*.o
 	rm -rf lib/*.so

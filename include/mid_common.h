@@ -19,7 +19,7 @@
 #define JOB_MEM_NAME "job_mem"
 #define DATA_MEM_NAME "data_mem"
 
-#define SLEEP_MICROSECONDS (unsigned int)250 
+#define SLEEP_MICROSECONDS (unsigned int)50 
 #define GLOBAL_MEM_SIZE sizeof(global_jobs_t)
 
 /* Jobs will be saved in shared memory objects named like: <name>_<tid> */
@@ -42,4 +42,3 @@ int build_shared_job(pid_t tid, const char *job_name,
 int destroy_shared_job(job_t **shared_job_ptr);
 
 #endif
-

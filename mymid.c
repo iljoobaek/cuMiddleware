@@ -138,11 +138,11 @@ int trigger_job(job_t *tj) {
 
 int main(int argc, char **argv)
 {
-	//fprintf(stdout, "Starting up middleware main...\n");
+	fprintf(stdout, "Starting up middleware main...\n");
 
 	max_gpu_memory_available = 1<<30; // 1 GB
 	gpu_memory_available = max_gpu_memory_available;
-	//fprintf(stdout, "GPU Memory has %lu bytes available at init.\n", gpu_memory_available);
+	fprintf(stdout, "GPU Memory has %lu bytes available at init.\n", gpu_memory_available);
 
 	int res;
 	if ((res=init_global_jobs(&GJ_fd, &GJ)) < 0)
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 			if (enqueue_job(q_job, queue_addr) < 0) {
 				fprintf(stderr, "Failed to enqueue job! Job type %d\n", q_job->req_type);
 			}
-			//fprintf(stdout, "Job (%s, tid %d) added to %s queue.\n", q_job->job_name,\
+			fprintf(stdout, "Job (%s, tid %d) added to %s queue.\n", q_job->job_name,\
 					q_job->tid, qtype);
 
 			// Continue onto next job_shm_name to process
@@ -201,14 +201,14 @@ int main(int argc, char **argv)
 		/* Handle all completed jobs first to release GPU resources */
 		while (jobs_completed && jobs_completed->ll_size > 0) {
 			/* Dequeue job from completed */
-			//fprintf(stdout, "Handling completed job!\n");
+			fprintf(stdout, "Handling completed job!\n");
 			job_t *compl_job = NULL;
 			dequeue_job_from_queue(&jobs_completed, &compl_job);
 
 			/* Handle completed jobs */
 			if (job_release_gpu(compl_job) == 0) {
 				remove_from_queue(compl_job, &jobs_executing);
-				//fprintf(stdout, "Removed compl_job (%s, %d) from JOBS_EXECUTING.\n",\
+				fprintf(stdout, "Removed compl_job (%s, %d) from JOBS_EXECUTING.\n",\
 						compl_job->job_name, compl_job->tid);
 
 				/* TODO: Avoid having client sleep waiting for server */
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
 		 * can fit on GPU.
 		 */
 		if (jobs_queued) {
-			//fprintf(stdout, "jobs_queued size %d\n", jobs_queued->ll_size);
+			fprintf(stdout, "jobs_queued size %d\n", jobs_queued->ll_size);
 		}
 		while (!queued_wait_for_complete &&
 				jobs_queued &&
@@ -234,18 +234,21 @@ int main(int argc, char **argv)
 			dequeue_job_from_queue(&jobs_queued, &q_job);
 
 			/* Handle queued jobs */
-			//fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
+			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
 			int res = job_acquire_gpu(q_job);
 			if (res < 0) {
 				if (res == -1) {
 					// Failed to acquire GPU, must wait for other jobs to complete
-					//fprintf(stdout, "\tJob must wait for job(s) to complete!\n");
+					fprintf(stdout, "\tJob must wait for job(s) to complete!\n");
 					queued_wait_for_complete = true;
+
+					// Adds q_job to back onto jobs_queued
+					enqueue_job(q_job, &jobs_queued);
 					break;
 				} else {
 					// Job is too big to fit on the GPU, instruct client to abort
 					// job
-					//fprintf(stdout, "\tJob must ABORT!\n");
+					fprintf(stdout, "\tJob must ABORT!\n");
 					abort_job(q_job);
 				}
 			} else {
@@ -253,7 +256,7 @@ int main(int argc, char **argv)
 				enqueue_job(q_job, &jobs_executing);
 
 				// Wake client to trigger execution
-				//fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
+				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
 				trigger_job(q_job);
 			}
 		}
@@ -263,7 +266,7 @@ int main(int argc, char **argv)
 	}
 
 	// TODO: Better name and interface
-	//fprintf(stdout, "Cleaning up server...\n");
+	fprintf(stdout, "Cleaning up server...\n");
 	destroy_global_jobs(GJ_fd);
 	return 0;
 }

@@ -61,10 +61,13 @@ class MetaJobStruct(object):
 class TagStateStruct(object):
     def __init__(self, init_meta_job_struct):
         self.ts = c_void_p(libpytag.CreateTagStateObj(init_meta_job_struct.mj))
+        # Must hold a pointer to mj so the memory isn't free'd!
+        self.mj = init_meta_job_struct
 
     def __del__(self):
         libpytag.DestroyTagStateObj(self.ts)
-       
+        # Removes reference to self.mj, so it can garbage collected now
+
     def acquire_gpu(self):
         return c_int(libpytag.TagState_acquire_gpu(self.ts)).value
 
@@ -79,19 +82,53 @@ class TagStateStruct(object):
 
 def tag_fn(fn):
     def wrapper(*args, **kwargs):
+        print("Checking if fn can run using tagging library ...")
         if wrapper.ts.acquire_gpu() < 0:
             print("Aborting job, couldn't acquire gpu!")
             raise Exception("Couldn't acquire gpu! Job too big!")
+        print("Fn can run, continuing ...")
         res = wrapper.fn(*args, **kwargs)
         wrapper.ts.release_gpu()
 
         return res
 
     mjs = MetaJobStruct(gettid(), 0, fn.__name__, 0, 0, 0, 0, 0, 0, 0, 0)
-    ts = TagStateStruct(mjs)
+    ts = TagStateStruct(mjs) # ts will hold a ref to mjs
     wrapper.ts = ts
     wrapper.fn = fn
     return wrapper
+
+def tag_tf_layer(layer_obj):
+    raise NotImplementedError()
+    import tensorflow as tf
+    import types
+    # Manually decorate the layer_obj's __call__ function with tagging routine
+    assert(isinstance(layer_obj, tf.keras.layers.Layer))
+    print("Wrapping layer (%s) obj's __call__ fn with tagging!" % layer_obj.name)
+    wrapped_call = tag_fn(layer_obj.__call__)
+
+    layer_obj.__call__ = types.MethodType(wrapped_call, layer_obj)
+    return layer_obj
+
+def tag_all_tf_layers(enable=True):
+    # Dynamically tag all tf layers by overriding Keras/TF-slim's base
+    # Layer object's __init__ function. Then, manually decorate the
+    # object's __call__ (aliased by obj's 'apply()' method using tag_fn wrapper
+    raise NotImplementedError()
+    if enable:
+        import tensorflow as tf
+        TFBaseLayer = tf.keras.layers.Layer
+        orig_init = TFBaseLayer.__init__
+        def override_init(self, *args, **kwargs):
+            orig_init(self, *args, **kwargs)
+            print("Manually decorating layer (%s) __call__ with tag library!" % self.name)
+            self = tag_tf_layer(self)
+
+        TFBaseLayer.__init__ = override_init
+
+        return True
+    else:
+        return False
 
 if __name__ == "__main__":
     # Testing

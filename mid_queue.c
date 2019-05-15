@@ -51,10 +51,10 @@ int is_queue_full(){
 
 // ---------------------------- Server Functions -------------------------------
 bool job_is_in_queue(job_t *j, job_t **queue) {
-	if (!j || !queue || !(*queue)) {
+	if (!j || !queue) {
 		// Bad input pointers!
 		fprintf(stderr, "remove_from_queue: bad input pointer(s)!\n");
-		return -1;
+		return false;
 	}
 
 	// Walk the job queue to find j
@@ -75,9 +75,10 @@ bool job_is_in_queue(job_t *j, job_t **queue) {
  * Returns 0 no removal, -1 on error, -2 if job not in queue
  */
 int remove_from_queue(job_t *rmj, job_t **queue) {
-	if (!rmj || !queue || !(*queue)) {
+	if (!rmj || !queue) {
 		// Bad input pointers!
-		fprintf(stderr, "remove_from_queue: bad input pointer(s)!\n");
+		fprintf(stderr, "remove_from_queue: bad input pointer(s)!\n: %p, %p",\
+				(void*)rmj, (void*)queue);
 		return -1;
 	}
 
@@ -187,7 +188,6 @@ void unmap_queue(job_t *jobs_list){
     munmap(jobs_list, sizeof(job_t));
     return;
 }
-
 
 /* TODO: Not thread-safe */
 int peek_job_queued_at_i(global_jobs_t *gj, job_t **qd_job, int i)

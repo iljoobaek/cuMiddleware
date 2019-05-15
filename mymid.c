@@ -85,10 +85,14 @@ int job_acquire_gpu(job_t *j) {
 
 	if (j->worst_peak_mem == 0) {
 		// This job has never run before, needs to run exclusively
-		if (max_gpu_memory_available > 0 &&\
-				gpu_memory_available == max_gpu_memory_available) {
-			gpu_memory_available = 0;
-			return 0;
+		if (max_gpu_memory_available > 0) {
+		   if (gpu_memory_available == max_gpu_memory_available) {
+				gpu_memory_available = 0;
+				return 0;
+		   } else {
+			   // Can't run exclusively yet, must wait for jobs to complete
+			   return -1;
+		   }
 		}
 		// Something wrong with max_gpu_memory available
 		fprintf(stderr, "Couldn't run job exclusive, bad initialization of max_gpu_memory_available: %lu\n",\
@@ -216,6 +220,9 @@ int main(int argc, char **argv)
 
 				// Reset flag since a job just released gpu resources
 				queued_wait_for_complete = false;
+
+				// Destroy shared job
+				destroy_shared_job(&compl_job);
 			}
 		}
 
@@ -250,6 +257,8 @@ int main(int argc, char **argv)
 					// job
 					fprintf(stdout, "\tJob must ABORT!\n");
 					abort_job(q_job);
+					// Destroy shared job
+					destroy_shared_job(&q_job);
 				}
 			} else {
 				// Adds q_job to jobs_executing on success

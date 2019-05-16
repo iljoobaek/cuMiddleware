@@ -2,7 +2,6 @@ import os
 import sys
 import functools
 from ctypes import cdll, c_uint, c_int, c_void_p, c_char_p, c_ulonglong, c_double
-import ctypes
 
 libc = cdll.LoadLibrary('libc.so.6')
 libpytag = cdll.LoadLibrary("libpytag.so")
@@ -81,12 +80,15 @@ class TagStateStruct(object):
         libpytag.TagState_end_timer(self.ts)
 
 def tag_fn(fn):
+    @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         print("Checking if fn can run using tagging library ...")
         if wrapper.ts.acquire_gpu() < 0:
             print("Aborting job, couldn't acquire gpu!")
             raise Exception("Couldn't acquire gpu! Job too big!")
         print("Fn can run, continuing ...")
+        import time
+        time.sleep(3)
         res = wrapper.fn(*args, **kwargs)
         wrapper.ts.release_gpu()
 
@@ -129,6 +131,51 @@ def tag_all_tf_layers(enable=True):
         return True
     else:
         return False
+
+def tag_pytorch_nn_layer(pt_module_obj):
+    """
+    Monkey-patching function called within __init__ 
+        to every object of (inherited) type torch.nn.Module
+    Installs tagging routine to pt_module_obj around 'forward()' fn 
+    only if obj is a 'leaf' Module class, i.e. it has no children Modules.
+    Returns None
+    Throws assertion exception if obj is not of type torch.nn.Module
+    """
+    import torch as pt
+    import types
+    # Manually decorate the layer_obj's 'forward()' function with tagging routine
+    assert(isinstance(pt_module_obj, pt.nn.Module))
+
+    # Only tag 'leaf' Modules 
+    n_children = sum(1 for _ in pt_module_obj.children())
+    if n_children > 0:
+        # Function is no-op for non-leaf Modules
+        return
+    else:
+        print("Wrapping Pytorch module (%s) obj's forward fn with tagging!" % pt_module_obj.__class__)
+        wrapped_call = tag_fn(pt_module_obj.forward)
+        #pt_module_obj.forward = types.MethodType(wrapped_call, pt_module_obj)
+        pt_module_obj.forward = wrapped_call
+        return
+
+def tag_all_pt_submodules(cls, enable=True):
+    # Dynamically tag all Pytorch layers by overriding nn's base
+    # Module subclass' __init__ function. Then, manually decorate the
+    # object's forward (called within __call__) method using tag_fn wrapper
+    if enable:
+        orig_init = cls.__init__
+        def override_init(self, *args, **kwargs):
+            res = orig_init(self, *args, **kwargs)
+            # Monkey-patch forward after original __init__
+            self.apply(tag_pytorch_nn_layer)
+            return res
+
+        cls.__init__ = override_init 
+
+        return True
+    else:
+        return False
+
 
 if __name__ == "__main__":
     # Testing

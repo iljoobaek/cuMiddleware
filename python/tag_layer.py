@@ -51,11 +51,9 @@ class MetaJobStruct(object):
                     lpm, apm, wpm, let, aet, wet,
                     run_count, deadline)
                     )
-        print("Alloc'd a MetaJob using CreateMetaJob:", self.mj)
 
     def __del__(self):
         libpytag.DestroyMetaJob(self.mj)
-        print("Free'd a MetaJob using DestroyMetaJob:", self.mj)
 
 class TagStateStruct(object):
     def __init__(self, init_meta_job_struct):
@@ -79,25 +77,22 @@ class TagStateStruct(object):
     def end_timer(self):
         libpytag.TagState_end_timer(self.ts)
 
-def tag_fn(fn):
+def tag_fn(fn, name):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
-        print("Checking if fn can run using tagging library ...")
         if wrapper.ts.acquire_gpu() < 0:
             print("Aborting job, couldn't acquire gpu!")
             raise Exception("Couldn't acquire gpu! Job too big!")
-        print("Fn can run, continuing ...")
-        import time
-        time.sleep(3)
         res = wrapper.fn(*args, **kwargs)
         wrapper.ts.release_gpu()
 
         return res
 
-    mjs = MetaJobStruct(gettid(), 0, fn.__name__, 0, 0, 0, 0, 0, 0, 0, 0)
+    mjs = MetaJobStruct(gettid(), 0, name, 0, 0, 0, 0, 0, 0, 0, 0)
     ts = TagStateStruct(mjs) # ts will hold a ref to mjs
     wrapper.ts = ts
     wrapper.fn = fn
+    print("Installed tagging routine for fn (name: %s): %s" % (name, fn.__name__))
     return wrapper
 
 def tag_tf_layer(layer_obj):
@@ -107,7 +102,7 @@ def tag_tf_layer(layer_obj):
     # Manually decorate the layer_obj's __call__ function with tagging routine
     assert(isinstance(layer_obj, tf.keras.layers.Layer))
     print("Wrapping layer (%s) obj's __call__ fn with tagging!" % layer_obj.name)
-    wrapped_call = tag_fn(layer_obj.__call__)
+    wrapped_call = tag_fn(layer_obj.__call__, layer_obj.__name__ + "__call__")
 
     layer_obj.__call__ = types.MethodType(wrapped_call, layer_obj)
     return layer_obj
@@ -151,11 +146,18 @@ def tag_pytorch_nn_layer(pt_module_obj):
     if n_children > 0:
         # Function is no-op for non-leaf Modules
         return
+    elif hasattr(pt_module_obj, "__tagged"):
+        # Already wrapped
+        print("Already wrapped Pytorch module (%s) obj's forward fn with tagging!" % pt_module_obj.__class__)
+        return
     else:
         print("Wrapping Pytorch module (%s) obj's forward fn with tagging!" % pt_module_obj.__class__)
-        wrapped_call = tag_fn(pt_module_obj.forward)
+        wrapped_call = tag_fn(pt_module_obj.forward, str(pt_module_obj.__class__) +".forward")
         #pt_module_obj.forward = types.MethodType(wrapped_call, pt_module_obj)
         pt_module_obj.forward = wrapped_call
+
+        # Mark this object as tagged
+        pt_module_obj.__tagged = True
         return
 
 def tag_all_pt_submodules(cls, enable=True):
@@ -172,6 +174,23 @@ def tag_all_pt_submodules(cls, enable=True):
 
         cls.__init__ = override_init 
 
+        return True
+    else:
+        return False
+
+def tag_pytorch_nn_functions_list(fn_names, enable=True):
+    # Dynamically tag all designated Pytorch functional operations 
+    # So that all forward passes through layers tag these designated laye
+    # operations
+    # i.e. ["conv2d", "batch_norm", "avg_pool2d", "linear", "relu"]
+    if enable:
+        import importlib
+        torch_fn_module = importlib.import_module("torch.nn.functional")
+        for fn_name in fn_names:
+            orig_fn = getattr(torch_fn_module, fn_name)
+            tagged_fn = tag_fn(orig_fn, fn_name)
+            setattr(torch_fn_module, fn_name, tagged_fn) 
+        print("Tagged torch.nn.functional." + str(fn_names) + " successfully")
         return True
     else:
         return False

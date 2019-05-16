@@ -1,0 +1,464 @@
+Inference time: 1.7765138149261475 
+	FPS: 0.5629002102871751
+Time: 1.84s, Detect Objects: 2.
+Inference time: 0.019846677780151367 
+	FPS: 50.38626671311702
+Time: 0.10s, Detect Objects: 2.
+Inference time: 0.017999887466430664 
+	FPS: 55.55590288355829
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.01903676986694336 
+	FPS: 52.52992009618516
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.01924443244934082 
+	FPS: 51.963080887545374
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.017223834991455078 
+	FPS: 58.059079206002046
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01698470115661621 
+	FPS: 58.87651426886958
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01690530776977539 
+	FPS: 59.15301949059318
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.016478300094604492 
+	FPS: 60.6858713737973
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.01877617835998535 
+	FPS: 53.25897426129798
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.016144514083862305 
+	FPS: 61.94054493096064
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.016485214233398438 
+	FPS: 60.660418836052294
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.015439987182617188 
+	FPS: 64.766893143916
+Time: 0.08s, Detect Objects: 5.
+Inference time: 0.015619993209838867 
+	FPS: 64.02051438601846
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.015375375747680664 
+	FPS: 65.03906092511902
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.01543426513671875 
+	FPS: 64.79090459713296
+Time: 0.08s, Detect Objects: 5.
+Inference time: 0.01573777198791504 
+	FPS: 63.54139587026012
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.015127897262573242 
+	FPS: 66.10304014121132
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.01853799819946289 
+	FPS: 53.94325693854979
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.01605987548828125 
+	FPS: 62.266983372921615
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.015604496002197266 
+	FPS: 64.08409472880061
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.015831470489501953 
+	FPS: 63.165326345592
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.015117645263671875 
+	FPS: 66.14786777693666
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015390396118164062 
+	FPS: 64.97558557442062
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014983892440795898 
+	FPS: 66.73833277642528
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015561103820800781 
+	FPS: 64.26279340565056
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015117168426513672 
+	FPS: 66.14995426300351
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01479792594909668 
+	FPS: 67.57703771730549
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015135049819946289 
+	FPS: 66.07180101132623
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015189170837402344 
+	FPS: 65.8363784768004
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015396356582641602 
+	FPS: 64.95043126809855
+Time: 0.08s, Detect Objects: 0.
+Inference time: 0.017153501510620117 
+	FPS: 58.29713539132973
+Time: 0.08s, Detect Objects: 0.
+Inference time: 0.015352010726928711 
+	FPS: 65.13804724262708
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015306472778320312 
+	FPS: 65.33183800623053
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01547098159790039 
+	FPS: 64.63713977500386
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015071392059326172 
+	FPS: 66.3508716423577
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015038251876831055 
+	FPS: 66.49709076496235
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015181541442871094 
+	FPS: 65.86946416232175
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015297889709472656 
+	FPS: 65.36849323608254
+Time: 0.07s, Detect Objects: 0.
+Inference time: 0.015398979187011719 
+	FPS: 64.93936954232984
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014662027359008789 
+	FPS: 68.20339203538384
+Time: 0.07s, Detect Objects: 0.
+Inference time: 0.015176057815551758 
+	FPS: 65.89326504642358
+Time: 0.08s, Detect Objects: 0.
+Inference time: 0.015052318572998047 
+	FPS: 66.43494788861786
+Time: 0.08s, Detect Objects: 0.
+Inference time: 0.014824867248535156 
+	FPS: 67.45422965583789
+Time: 0.08s, Detect Objects: 0.
+Inference time: 0.014997005462646484 
+	FPS: 66.67997837906584
+Time: 0.07s, Detect Objects: 0.
+Inference time: 0.015294075012207031 
+	FPS: 65.38479765542183
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015192031860351562 
+	FPS: 65.8239799121155
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01475977897644043 
+	FPS: 67.75169205421035
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015218496322631836 
+	FPS: 65.70951418589713
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015174388885498047 
+	FPS: 65.90051220815134
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015170574188232422 
+	FPS: 65.91708313688511
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015045881271362305 
+	FPS: 66.46337173372208
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014679193496704102 
+	FPS: 68.12363364680277
+Time: 0.07s, Detect Objects: 0.
+Inference time: 0.01526021957397461 
+	FPS: 65.529856575946
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014977693557739258 
+	FPS: 66.7659540599481
+Time: 0.07s, Detect Objects: 0.
+Inference time: 0.014941930770874023 
+	FPS: 66.9257551339535
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014831066131591797 
+	FPS: 67.42603607369064
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014394998550415039 
+	FPS: 69.46857246964903
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015183448791503906 
+	FPS: 65.86118962376734
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015329837799072266 
+	FPS: 65.23226227876451
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015054464340209961 
+	FPS: 66.42547867538761
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014676570892333984 
+	FPS: 68.13580688131518
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014684200286865234 
+	FPS: 68.10040591005033
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01484370231628418 
+	FPS: 67.36863746606916
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015108585357666016 
+	FPS: 66.18753353321762
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01486659049987793 
+	FPS: 67.26491861117793
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.015207529067993164 
+	FPS: 65.75690209296856
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014793872833251953 
+	FPS: 67.59555197421435
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.01493525505065918 
+	FPS: 66.95566942834795
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014780282974243164 
+	FPS: 67.65770328908103
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014904975891113281 
+	FPS: 67.0916885277369
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01426386833190918 
+	FPS: 70.10720911962827
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014475822448730469 
+	FPS: 69.08070360366295
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014625072479248047 
+	FPS: 68.37572951648137
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015009164810180664 
+	FPS: 66.6259590488142
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014551162719726562 
+	FPS: 68.72303054135536
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014608621597290039 
+	FPS: 68.45272795521682
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014426469802856445 
+	FPS: 69.31702721909137
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014267444610595703 
+	FPS: 70.08963604157616
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014063596725463867 
+	FPS: 71.1055656331056
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014720678329467773 
+	FPS: 67.93165217109632
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01448202133178711 
+	FPS: 69.0511343057522
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01441335678100586 
+	FPS: 69.38009064743441
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015106439590454102 
+	FPS: 66.19693502312148
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014682531356811523 
+	FPS: 68.10814672880502
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014231204986572266 
+	FPS: 70.26811861283296
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014526844024658203 
+	FPS: 68.83807648120795
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014435291290283203 
+	FPS: 69.27466719519043
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014659881591796875 
+	FPS: 68.21337496747333
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014787435531616211 
+	FPS: 67.6249778308047
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014378070831298828 
+	FPS: 69.55035983152588
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014754533767700195 
+	FPS: 67.77577765209664
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014696836471557617 
+	FPS: 68.0418539006862
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014690637588500977 
+	FPS: 68.07056494149342
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01455998420715332 
+	FPS: 68.68139317820825
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01439976692199707 
+	FPS: 69.44556848850108
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.015499114990234375 
+	FPS: 64.51981294609894
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01476144790649414 
+	FPS: 67.74403204444876
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014333009719848633 
+	FPS: 69.76901708335413
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014364480972290039 
+	FPS: 69.61615960430879
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014442920684814453 
+	FPS: 69.23807322790452
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01442575454711914 
+	FPS: 69.32046408620633
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014302492141723633 
+	FPS: 69.91788494557335
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01417684555053711 
+	FPS: 70.53755339544583
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.013795614242553711 
+	FPS: 72.48680503948982
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014656782150268555 
+	FPS: 68.22779991866612
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014403820037841797 
+	FPS: 69.42602707981594
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014255523681640625 
+	FPS: 70.14824725715815
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014413833618164062 
+	FPS: 69.37779542146355
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01404714584350586 
+	FPS: 71.18883872500764
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014316320419311523 
+	FPS: 69.85035055872899
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014191389083862305 
+	FPS: 70.46526552761118
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014784574508666992 
+	FPS: 67.63806421441357
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01444101333618164 
+	FPS: 69.24721809476638
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014722347259521484 
+	FPS: 67.92395141700405
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014828205108642578 
+	FPS: 67.4390455670965
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014292716979980469 
+	FPS: 69.96570360979516
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014076471328735352 
+	FPS: 71.0405311563151
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014398574829101562 
+	FPS: 69.45131805537157
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.013925313949584961 
+	FPS: 71.81166640984813
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014332056045532227 
+	FPS: 69.77365960773876
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014185428619384766 
+	FPS: 70.49487377726983
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014055013656616211 
+	FPS: 71.14898814269478
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014185667037963867 
+	FPS: 70.49368896956251
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014649391174316406 
+	FPS: 68.26222251155524
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014392852783203125 
+	FPS: 69.47892923403127
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014586925506591797 
+	FPS: 68.55454218561015
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.01431131362915039 
+	FPS: 69.87478759204345
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014302492141723633 
+	FPS: 69.91788494557335
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014575958251953125 
+	FPS: 68.60612405129547
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014214038848876953 
+	FPS: 70.35298064342983
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014670133590698242 
+	FPS: 68.16570509174237
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014587879180908203 
+	FPS: 68.55006047134965
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01849818229675293 
+	FPS: 54.05936561537371
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014357805252075195 
+	FPS: 69.6485279221534
+Time: 0.08s, Detect Objects: 1.
+Inference time: 0.014342784881591797 
+	FPS: 69.72146680408258
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.013833284378051758 
+	FPS: 72.28941245411144
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014739036560058594 
+	FPS: 67.84703979294727
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014347553253173828 
+	FPS: 69.69829505799461
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014200210571289062 
+	FPS: 70.42149093351243
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.013643503189086914 
+	FPS: 73.29495849716034
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014623403549194336 
+	FPS: 68.38353305616695
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014822959899902344 
+	FPS: 67.46290934825967
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014146566390991211 
+	FPS: 70.68853122103312
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014386653900146484 
+	FPS: 69.50886612972722
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.014443397521972656 
+	FPS: 69.2357873885771
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.014381885528564453 
+	FPS: 69.53191207188091
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.013944387435913086 
+	FPS: 71.7134405936362
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.014068841934204102 
+	FPS: 71.07905573726042
+Time: 0.08s, Detect Objects: 4.
+Inference time: 0.014105558395385742 
+	FPS: 70.8940385037946
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014374732971191406 
+	FPS: 69.56650965302195
+Time: 0.08s, Detect Objects: 3.
+Inference time: 0.014485597610473633 
+	FPS: 69.0340866073045
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.014199256896972656 
+	FPS: 70.42622069984553
+Time: 0.08s, Detect Objects: 2.
+Inference time: 0.01379251480102539 
+	FPS: 72.50309420916163
+Time: 0.08s, Detect Objects: 2.
+------------------------------------------------------------
+Average FPS: 66.54122604757646

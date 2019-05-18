@@ -3,7 +3,7 @@ GCC=gcc
 CXX=g++
 CUDAPATH?=/usr/local/cuda-10.0
 
-all: libcuhook.so mid tag_lib.o
+all: libmid.so libpytag.so libcuhook.so mid
 
 SHAREDFLAGS=-Wall -fPIC -shared -ldl -g -lrt
 INCL_FLAGS=-I./include

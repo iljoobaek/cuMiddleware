@@ -4,6 +4,7 @@
 #include <err.h>		// err
 #include <string.h>	// strncpy
 #include <stdlib.h> // malloc, free
+#include <stdint.h>	// int64_t
 #include "mid_structs2.h" /* global_jobs_t, job_t, JOB_MEM_NAME_MAX_LEN */
 #include "mid_common2.h"	/* build/destroy_shared_job */
 #include "mid_queue.h" /* submit_job */
@@ -28,7 +29,7 @@ extern "C" {
 /* Implement interface for meta_job struct */
 void *CreateMetaJob(pid_t tid, const char *job_name,
 		uint64_t lpm, uint64_t apm, uint64_t wpm,
-		double let, double aet, double wet,
+		int64_t let, int64_t aet, int64_t wet,
 		unsigned int run_count) {
 	meta_job_t *mj = (meta_job_t *)calloc(1, sizeof (meta_job_t));
 	mj->tid = tid;
@@ -49,7 +50,7 @@ void DestroyMetaJob(void *mj) {
 }
 
 int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
-		double slacktime, bool first_flag, bool shareable_flag,
+		int64_t slacktime, bool first_flag, bool shareable_flag,
 		uint64_t required_mem) {
 	/* First, init global jobs if not already */
 	if (gb_jobs == NULL) {

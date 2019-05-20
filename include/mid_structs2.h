@@ -33,7 +33,7 @@ typedef struct job {
     pid_t tid;                      // tid (since client may be multithreaded)
 
 	char job_name[MAX_NAME_LENGTH];
-	double slacktime;				// Est. time remaining before job's deadline after execution
+	int64_t slacktime;				// Est. time remaining before job's deadline after execution
 	bool first_flag;				// First-run flag for job (slacktime ignored if True)
 	bool shareable_flag;			// Can job execute on GPU with other shareable jobs?
 	uint64_t required_mem;			// Worst-case job GPU memory requirement

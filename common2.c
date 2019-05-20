@@ -7,6 +7,7 @@
 #include <fcntl.h>              // for O_ constants, such as "O_RDWR"
 #include <string.h>				// memset(), strncpy
 #include <stdio.h>				// *printf, perror
+#include <stdint.h>				// int64_t
 #include "mid_structs2.h"		// global_jobs_t, GLOBAL_JOBS_MAX*, JOB_MEM_NAME_MAX_LEN
 #include "mid_common2.h"
 
@@ -136,9 +137,8 @@ bool jobs_equal(job_t *a, job_t *b) {
 			&& (strcmp(a->job_name, b->job_name) == 0));
 }
 
-// TODO: switch to using pid in job, but saving shm_obj by tid
 int build_job(pid_t pid, pid_t tid, const char *job_name,
-						double slacktime, bool first_flag,
+						int64_t slacktime, bool first_flag,
 						bool shareable_flag,
 						uint64_t required_mem,
 						enum job_type req_type,
@@ -176,7 +176,7 @@ int build_job(pid_t pid, pid_t tid, const char *job_name,
 }
 
 int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
-						double slacktime, bool first_flag,
+						int64_t slacktime, bool first_flag,
 						bool shareable_flag,
 						uint64_t required_mem,
 						enum job_type req_type,

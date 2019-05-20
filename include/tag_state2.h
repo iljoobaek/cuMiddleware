@@ -4,6 +4,7 @@
 #include <sys/types.h> /* pid_t */
 #include <unistd.h>  // syscall()
 #include <sys/syscall.h> // SYS_gettid
+#include <stdint.h> // int64_t
 
 #ifdef __cplusplus
 #include <unordered_map> // unordered_map
@@ -47,16 +48,14 @@ struct TagState {
 	meta_job_t *get_local_meta_job_for_tid(pid_t tid);
 
 	// Request permission to run on GPU
-	int acquire_gpu(pid_t tid, double slacktime, bool first_flag, bool shareable_flag);
+	// on success, starts the timer for job (specific to tid)
+	int acquire_gpu(pid_t tid, int64_t slacktime, bool first_flag, bool shareable_flag);
 	int release_gpu(pid_t tid);
 
-	// Prepare to collect metrics during run of job
-	void start_timer();
-	void end_timer();
-
 	/* Stats retrieval */
-	double get_wc_exec_time_for_tid(pid_t tid) const ;  // Returns -1 if not yet known
-	double get_max_wc_exec_time() const;				// Returns -1 if not yet known
+	// Note: execution time measured in whole microseconds
+	int64_t get_wc_exec_time_for_tid(pid_t tid) const ;  // Returns -1 if not yet known
+	int64_t get_max_wc_exec_time() const;				// Returns -1 if not yet known
 	int64_t get_required_mem_for_tid(pid_t tid) const; // Returns -1 if not yet known
 };
 #endif
@@ -68,11 +67,10 @@ extern "C" {
 void *CreateTagStateObj(const meta_job_t *inp_init_meta_job); 
 void DestroyTagStateObj(void *tag_obj);
 meta_job_t *TagState_get_local_meta_job_for_tid(void *tag_obj, pid_t tid);
-int TagState_acquire_gpu(void *tag_obj, pid_t tid, double slacktime, bool first_flag, bool shareable_flag);
+int TagState_acquire_gpu(void *tag_obj, pid_t tid, int64_t slacktime, bool first_flag, bool shareable_flag);
 int TagState_release_gpu(void *tag_obj, pid_t tid);
-void TagState_start_timer(void *tag_obj);
-void TagState_end_timer(void *tag_obj);
-double TagState_get_wc_exec_time_for_tid(void *tag_obj, pid_t tid);
+int64_t TagState_get_wc_exec_time_for_tid(void *tag_obj, pid_t tid);
+int64_t TagState_get_max_wc_exec_time(void *tag_obj);
 uint64_t TagState_get_required_mem_for_tid(void *tag_obj, pid_t tid);
 #ifdef __cplusplus
 }

@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <stdio.h> 		// *printf
+#include <stdint.h>				// int64_t
 #include <assert.h>		// assert()
 #include "mid_structs.h" // global_jobs_t
 // ------------------------ Defines ------------------------
@@ -32,7 +33,7 @@ int get_shared_job(const char *name, job_t **save_job);
 
 bool jobs_equal(job_t *a, job_t *b);
 int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
-						double slacktime, bool first_flag,
+						int64_t slacktime, bool first_flag,
 						bool shareable_flag,
 						uint64_t required_mem,
 						enum job_type req_type,

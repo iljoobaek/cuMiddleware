@@ -13,14 +13,14 @@ typedef struct meta_job {
     uint64_t last_peak_mem;			// In bytes
 	uint64_t avg_peak_mem;
 	uint64_t worst_peak_mem;
-    double last_exec_time;
-   	double avg_exec_time;
-    double worst_exec_time;
+    int64_t last_exec_time; // Execution time in (us)
+   	int64_t avg_exec_time;
+    int64_t worst_exec_time;
 	unsigned int run_count;
 
 	// running metadata fields
 	uint64_t c_mem_util;
-	double c_exec_time;
+	int64_t job_start_us;
 } meta_job_t;
 
 /* C-exposed Interface for easier manipulation/creation of a meta_job */
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 void *CreateMetaJob(pid_t tid, const char *job_name,
 		uint64_t lpm, uint64_t apm, uint64_t wpm,
-		double let, double aet, double wet,
+		int64_t let, int64_t aet, int64_t wet,
 		unsigned int run_count);
 void DestroyMetaJob(void *mj);
 #ifdef __cplusplus
@@ -55,9 +55,8 @@ void DestroyMetaJob(void *mj);
 #ifdef __cplusplus
 extern "C" {
 #endif
-// TODO: Use pid instead of tid
 int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
-		double slacktime, bool first_flag, bool shareable_flag,
+		int64_t slacktime, bool first_flag, bool shareable_flag,
 		uint64_t required_mem);
 
 int tag_job_end(pid_t pid, pid_t tid, const char *job_name);

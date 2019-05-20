@@ -40,8 +40,8 @@ test_mid.o: tests/test_mid.c tag_lib.o libmid.so
 test_app1: app1.c tag_lib.o mid_queue.o common.o
 	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o app1.o app1.c tag_lib.o mid_queue.o common.o -lrt -lpthread
 
-test_app2: tests/app2.c tag_lib.o libmid.so
-	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tests/app2.o tests/app2.c tag_lib.o $(LOAD_MID)
+test_app2: app2.c tag_lib.o mid_queue.o common.o
+	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o app2.o app2.c tag_lib.o mid_queue.o common.o -lrt -lpthread
 
 test_app: test_app1 test_app2
 

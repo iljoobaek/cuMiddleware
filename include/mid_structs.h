@@ -44,17 +44,6 @@ typedef struct job {
 	pthread_mutex_t own_job;		// mutex protecting job from multi-threaded mods
 	pthread_cond_t client_wake;		// cond_var used to block client until ready
 	bool client_exec_allowed;		// flag determining whether client should execute when woken
-
-#ifdef __cplusplus
-	inline bool operator==(const job& rhs){ 
-#include <stdio.h>
-		fprintf(stderr, "Hello!\n");
-		return pid == rhs.pid \
-			&& tid == rhs.tid \
-			&& strcmp(job_name, rhs.job_name) == 0;
-	}
-#endif
-
 } job_t;
 
 

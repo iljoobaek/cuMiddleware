@@ -16,7 +16,7 @@
 #include <algorithm>	// std::find
 #include <cassert>		// assert()
 #include <queue>		// std::queue, std::priority_queue, std::vector
-#include <list>			// std::list
+#include <vector>			// std::vector
 #include <memory>		// std::shared_ptr
 #include <unordered_map>	// std::unordered_map
 
@@ -39,7 +39,9 @@ struct CompareJobPtr {
 	public: 
 		CompareJobPtr(job_t *_lhs) : lhs(_lhs) {}
 		bool operator()(job_t *&rhs) {
-			return *lhs == *rhs;
+			return lhs->pid == rhs->pid \
+				&& lhs->tid == rhs->tid \
+				&& strcmp(lhs->job_name, rhs->job_name) == 0 ;
 		}
 };
 
@@ -49,7 +51,7 @@ static uint64_t gpu_memory_available;	// In Bytes
 static std::priority_queue<job_t *,\
 		std::vector<job_t *>, CompareJobSlack> jobs_queued_pr;
 static std::queue<job_t*> jobs_queued_first;
-static std::list<job_t*> jobs_executing;
+static std::vector<job_t*> jobs_executing;
 static std::queue<job_t*> jobs_completed;
 static std::unordered_map<pid_t, int> running_pid_jobs;	// How many jobs per pid concurrently running on GPU
 static int gpu_excl_jobs = 0;	// How many jobs are running on GPU with non-shareable flag
@@ -105,7 +107,10 @@ int job_release_gpu(job_t *comp_job) {
 			return -2;
 		}
 	}
-	// If job was shared, decrement number of gpu_excl_jobs
+	// If job was non-shared, decrement number of gpu_excl_jobs
+	fprintf(stderr, "Completed job has attrs: (%d, %d, %s, %ld, %d, %d)\n",
+			comp_job->pid, comp_job->tid, comp_job->job_name,
+			comp_job->slacktime, comp_job->first_flag, comp_job->shareable_flag);
 	if (!comp_job->shareable_flag) {
 		if (gpu_excl_jobs < 1) {
 			fprintf(stderr, "Couldn't release job because too few gpu_excl_jobs!\n");
@@ -137,7 +142,7 @@ void alloc_gpu_for_job(job_t *j) {
 		running_pid_jobs[j->pid] = 1;
 	}
 
-	if (j->shareable_flag) {
+	if (!j->shareable_flag) { // TODO
 		gpu_excl_jobs++;
 	}
 	return;
@@ -189,6 +194,7 @@ int job_acquire_gpu(job_t *j) {
 		} else {
 			// Job is first of its process to run next to other jobs
 			if (j->shareable_flag) {
+				fprintf(stdout, "SHARING GPU!\n");
 				if (gpu_excl_jobs == 0) {
 					// Can run if no other jobs are not-shareable
 					can_run_now = true;
@@ -284,6 +290,7 @@ int main(int argc, char **argv)
 			}
 			else {
 				qtype = "COMPLETED";
+
 				jobs_completed.push(q_job);
 			}
 			fprintf(stdout, "Job (%s, tid %d) added to %s queue.\n", q_job->job_name,\
@@ -304,29 +311,35 @@ int main(int argc, char **argv)
 			jobs_completed.pop();
 
 			/* Handle completed jobs */
-			if (job_release_gpu(compl_job) == 0) {
-				// Remove compl_job from jobs_executing list
-				auto idx = std::find_if(jobs_executing.begin(),
-						jobs_executing.end(),
-						CompareJobPtr(compl_job));
-				job_t *front = jobs_executing.front();
-				fprintf(stderr, "front and compl_job: front (%d, %d, %s), compl_job (%d, %d, %s)\n",
-						front->pid, front->tid, front->job_name, compl_job->pid, compl_job->tid, compl_job->job_name);
-				assert(idx != jobs_executing.end());
-				jobs_executing.erase(idx);
+			// First, get original job from executing queue
+			auto it = std::find_if(jobs_executing.begin(),
+					jobs_executing.end(),
+					CompareJobPtr(compl_job));
+			assert(it != jobs_executing.end());
+			job_t *orig_job = jobs_executing[it - jobs_executing.begin()];
+
+			// Next, release job and remove from executing queue
+			if (job_release_gpu(orig_job) == 0) {
+				// Remove job from jobs_executing on successful release
+				jobs_executing.erase(it);
 				fprintf(stdout, "Removed compl_job (%s, %d) from JOBS_EXECUTING.\n",\
 						compl_job->job_name, compl_job->tid);
 
 				/* TODO: Avoid having client sleep waiting for server */
+				// NOTE: It must be the compl_job the client is holding on to
 				pthread_cond_signal(&(compl_job->client_wake));
 
 				// Reset flags since a job just released gpu resources
 				queued_wait_for_complete = false;
 				pq_wait_flag = false;
 
-				// Destroy shared job
+				// Destroy shared jobs
+				destroy_shared_job(&orig_job);
 				destroy_shared_job(&compl_job);
+			} else  {
+				fprintf(stderr, "Something went wrong releasing job's resources!\n");
 			}
+
 		}
 
 		/*
@@ -363,7 +376,7 @@ int main(int argc, char **argv)
 			} else {
 				// Adds q_job to jobs_executing on success
 				jobs_executing.push_back(q_job);
-				fprintf(stdout, "jobs executing has size: %d\n", jobs_executing.size());
+				fprintf(stdout, "jobs executing has size: %d\n", (int)jobs_executing.size());
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");

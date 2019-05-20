@@ -5,10 +5,10 @@
 #include <string.h>	// strncpy
 #include <stdlib.h> // malloc, free
 #include <stdint.h>	// int64_t
-#include "mid_structs2.h" /* global_jobs_t, job_t, JOB_MEM_NAME_MAX_LEN */
-#include "mid_common2.h"	/* build/destroy_shared_job */
+#include "mid_structs.h" /* global_jobs_t, job_t, JOB_MEM_NAME_MAX_LEN */
+#include "mid_common.h"	/* build/destroy_shared_job */
 #include "mid_queue.h" /* submit_job */
-#include "tag_gpu2.h" // fn's impl.'d in this file
+#include "tag_gpu.h" // fn's impl.'d in this file
 
 #define TAG_DEBUG_FN(fn, ...) \
 {\

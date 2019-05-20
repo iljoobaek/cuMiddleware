@@ -7,6 +7,7 @@
 #include <fcntl.h>              // for O_ constants, such as "O_RDWR"
 #include <string.h>				// memset(), strncpy
 #include <stdio.h>				// *printf, perror
+#include <stdint.h>				// int64_t
 #include "mid_structs.h"		// global_jobs_t, GLOBAL_JOBS_MAX*, JOB_MEM_NAME_MAX_LEN
 #include "mid_common.h"
 
@@ -136,28 +137,23 @@ bool jobs_equal(job_t *a, job_t *b) {
 			&& (strcmp(a->job_name, b->job_name) == 0));
 }
 
-int build_job(pid_t tid, const char *job_name,
-						uint64_t lpm, uint64_t apm, uint64_t wpm,
-						double let, double aet, double wet,
-						unsigned int run_count,
-						time_t deadline,
+int build_job(pid_t pid, pid_t tid, const char *job_name,
+						int64_t slacktime, bool first_flag,
+						bool shareable_flag,
+						uint64_t required_mem,
 						enum job_type req_type,
 						job_t *shm_job) {
 	// Fail on bad mapped job
 	if (!shm_job) return -1;
 
 	// Init job with metadata
+	shm_job->pid = pid;
 	shm_job->tid = tid;
-	shm_job->priority = 0; // TODO
 	strncpy(shm_job->job_name, job_name, JOB_MEM_NAME_MAX_LEN);
-	shm_job->last_peak_mem = lpm;
-	shm_job->avg_peak_mem = apm;
-	shm_job->worst_peak_mem = wpm;
-	shm_job->last_exec_time = let;
-	shm_job->avg_exec_time = aet;
-	shm_job->worst_exec_time = wet;
-	shm_job->run_count = run_count;
-	shm_job->deadline = deadline;
+	shm_job->slacktime = slacktime;
+	shm_job->first_flag = first_flag;
+	shm_job->shareable_flag = shareable_flag;
+	shm_job->required_mem= required_mem;
 	shm_job->req_type = req_type;
 
 	// Init client-server locks and state
@@ -176,18 +172,13 @@ int build_job(pid_t tid, const char *job_name,
 
 	shm_job->client_exec_allowed = true;
 
-	// Init linked-list attrs of new job
-	shm_job->ll_size = 1;
-	shm_job->next = NULL;
-
  	return 0;
 }
 
-int build_shared_job(pid_t tid, const char *job_name,
-						uint64_t lpm, uint64_t apm, uint64_t wpm,
-						double let, double aet, double wet,
-						unsigned int run_count,
-						time_t deadline,
+int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
+						int64_t slacktime, bool first_flag,
+						bool shareable_flag,
+						uint64_t required_mem,
 						enum job_type req_type,
 						job_t **save_new_job,
 						char *copy_shm_name) {
@@ -228,11 +219,9 @@ int build_shared_job(pid_t tid, const char *job_name,
     }
 
 	// Save job and job_shm_name for caller
-	DEBUG_FN(build_job, tid, job_name,
-						lpm, apm, wpm,
-						let, aet, wet,
-						run_count,
-						deadline,
+	DEBUG_FN(build_job, pid, tid, job_name,
+						slacktime, first_flag, shareable_flag,
+						required_mem,
 						req_type, shm_job);
 	*save_new_job = shm_job;
 	strncpy(copy_shm_name, job_shm_name, JOB_MEM_NAME_MAX_LEN);

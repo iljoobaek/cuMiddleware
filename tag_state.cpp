@@ -1,7 +1,11 @@
+#include <cstdio> /* fprintf */
 #include <cstring> /* memcpy */
 #include <sys/types.h> /* pid_t */
+#include <stdint.h> // int64_t
 #include <mutex> /* std::unique_lock, std::mutex */
 #include <unordered_map> // unordered_map
+#include <unistd.h>  // getpid()
+#include <chrono>	// std::chrono::high_resolution_clock
 
 #include "tag_state.h" // *_running_meta_job_for_tid, TagState class
 #include "tag_gpu.h" /* meta_job_t */
@@ -50,6 +54,9 @@ TagState::TagState(const meta_job_t *inp_init_meta_job) : init_meta_job(std::mak
 	/* Init a template job for all threads calling this function */
 	memcpy(init_meta_job.get(), inp_init_meta_job, sizeof(meta_job_t));
 	init_meta_job->tid = 0;
+
+	// Save process' pid for use in tag_job_* calls
+	tag_pid = getpid();
 	}
 
 TagState::~TagState() { 
@@ -84,60 +91,70 @@ meta_job_t *TagState::get_local_meta_job_for_tid(pid_t tid) {
 	// Unlocks on destruction of lck
 }
 
-	// Use meta job to construct call to tag_end
-int TagState::tag_end_from_meta_job(meta_job_t *mj) {
-	return tag_end(mj->tid, mj->job_name);
-}
-	
-// Use meta job to construct call tag_begin 
-int TagState::tag_begin_from_meta_job(meta_job_t *mj) {
-	return tag_begin(mj->tid,
-			mj->job_name,
-			mj->last_peak_mem,
-			mj->avg_peak_mem,
-			mj->worst_peak_mem,
-			mj->last_exec_time,
-			mj->avg_exec_time,
-			mj->worst_exec_time,
-			mj->run_count,
-			mj->deadline);
-}
-
-int TagState::acquire_gpu() {
+int TagState::acquire_gpu(pid_t call_tid, int64_t slacktime, bool first, bool shareable) {
 	// First, retrieve tid and local copy of current metadata for job
-	pid_t call_tid = gettid();
 	meta_job_t *curr_meta_job = get_local_meta_job_for_tid(call_tid);
 
 	// Set the global hashmap of tid->job metadata to point
 	// to this thread's job (i.e. for this tid)
 	set_running_job_for_tid(call_tid, curr_meta_job);
 
-	if (tag_begin_from_meta_job(curr_meta_job) < 0) {
-		// Job is aborted, raise error for client 
-		fprintf(stderr, "Job (%s) was aborted! Raising SIGSEGV!\n", curr_meta_job->job_name);
-		return -1;
-	}	
-	return 0;
+	int res = tag_job_begin(tag_pid, call_tid, curr_meta_job->job_name, slacktime, first, shareable,
+			curr_meta_job->worst_peak_mem);
+
+	// Get current time in microseconds
+	std::chrono::system_clock::time_point now_tp = std::chrono::high_resolution_clock::now();
+	std::chrono::microseconds us_now = std::chrono::duration_cast<std::chrono::microseconds>(now_tp.time_since_epoch());
+	curr_meta_job->job_start_us = us_now.count();
+	return res;
 }
 
-int TagState::release_gpu() {
+int TagState::release_gpu(pid_t call_tid) {
 	// First, retrieve tid and local copy of current metadata for job
-	pid_t call_tid = gettid();
 	meta_job_t *curr_meta_job = get_local_meta_job_for_tid(call_tid);
 
 	// Notify server of end of work
-	TagState::tag_end_from_meta_job(curr_meta_job);
-	
+	int res = tag_job_end(tag_pid, call_tid, curr_meta_job->job_name);
 	curr_meta_job->run_count++;
-	return 0;
+
+	// Update tid's job execution time stats
+	std::chrono::system_clock::time_point now_tp = std::chrono::high_resolution_clock::now();
+	std::chrono::microseconds us_now = std::chrono::duration_cast<std::chrono::microseconds>(now_tp.time_since_epoch());
+	int64_t job_end_us = us_now.count();
+	int64_t job_time_us = job_end_us - curr_meta_job->job_start_us;
+	if (job_time_us > curr_meta_job->worst_exec_time) {
+		curr_meta_job->worst_exec_time = job_time_us;
+	}
+	curr_meta_job->last_exec_time = job_time_us;
+
+	return res;
 }
 
-void TagState::start_timer() {
-	// TODO
+/* Stats retrieval */
+// All return -1 if not yet known
+int64_t TagState::get_wc_exec_time_for_tid(pid_t tid) const   {
+	if (tid_to_meta_job.find(tid) == tid_to_meta_job.end()) {
+		return -1;
+	}
+	return tid_to_meta_job.at(tid).get()->worst_exec_time;
+}
+int64_t TagState::get_max_wc_exec_time() const {
+	// Loop over each thread's meta_jobs and find maximum
+	int64_t max_wc_exec_time = -1;
+	for (auto iter = tid_to_meta_job.begin(); iter != tid_to_meta_job.end(); ++iter) {
+		std::shared_ptr<meta_job_t> mj = iter->second;
+		if (mj->worst_exec_time > max_wc_exec_time)	 {
+			max_wc_exec_time = mj->worst_exec_time;
+		}
+	}
+	return max_wc_exec_time;
 }
 
-void TagState::end_timer() {
-	// TODO
+int64_t TagState::get_required_mem_for_tid(pid_t tid) const {
+	if (tid_to_meta_job.find(tid) == tid_to_meta_job.end()) {
+		return -1;
+	}
+	return tid_to_meta_job.at(tid).get()->worst_peak_mem;
 }
 
 
@@ -155,29 +172,26 @@ meta_job_t *TagState_get_local_meta_job_for_tid(void *tag_obj, pid_t tid) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
 	return ts->get_local_meta_job_for_tid(tid);
 }
-int TagState_tag_end_from_meta_job(void *tag_obj, meta_job_t *mj) {
+int TagState_acquire_gpu(void *tag_obj, pid_t tid,
+	   	int64_t slacktime, bool first_flag, bool shareable_flag) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
-	return ts->tag_end_from_meta_job(mj);
+	return ts->acquire_gpu(tid, slacktime, first_flag, shareable_flag);
 }
-int TagState_tag_begin_from_meta_job(void *tag_obj, meta_job_t *mj) {
+int TagState_release_gpu(void *tag_obj, pid_t call_tid) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
-	return ts->tag_begin_from_meta_job(mj);
+	return ts->release_gpu(call_tid);
 }
-int TagState_acquire_gpu(void *tag_obj) {
+int64_t TagState_get_wc_exec_time_for_tid(void *tag_obj, pid_t tid) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
-	return ts->acquire_gpu();
+	return ts->get_wc_exec_time_for_tid(tid);
 }
-int TagState_release_gpu(void *tag_obj) {
+int64_t TagState_get_max_wc_exec_time(void *tag_obj) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
-	return ts->release_gpu();
+	return ts->get_max_wc_exec_time();
 }
-void TagState_start_timer(void *tag_obj) {
+uint64_t TagState_get_required_mem_for_tid(void *tag_obj, pid_t tid) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
-	return ts->start_timer();
-}
-void TagState_end_timer(void *tag_obj) {
-	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
-	return ts->end_timer();
+	return ts->get_required_mem_for_tid(tid);
 }
 #ifdef __cplusplus
 }

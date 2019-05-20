@@ -1,5 +1,5 @@
 /*
- * Simplified mid.c
+ * Simplified mid.cpp
 */
 
 #include <stdio.h>
@@ -20,30 +20,37 @@
 #include <memory>		// std::shared_ptr
 #include <unordered_map>	// std::unordered_map
 
-#include "mid_structs2.h"
+#include "mid_structs.h"
 #include "mid_queue.h"
-#include "mid_common2.h"
+#include "mid_common.h"
 
 // Only keep last 100 completed jobs
 #define MAX_COMPLETED_QUEUE_SIZE 100
 
-struct CompareJob{
+struct CompareJobSlack {
 public:
 	/* One job is higher priority than another if its slacktime is <= to others */
-    bool operator()(std::shared_ptr<job_t>& j1, std::shared_ptr<job_t>& j2)
-    {
+    bool operator()(job_t *&j1, job_t *& j2) {
 		return j2->slacktime <= j1->slacktime;
     }
+};
+struct CompareJobPtr {
+	job_t *lhs;
+	public: 
+		CompareJobPtr(job_t *_lhs) : lhs(_lhs) {}
+		bool operator()(job_t *&rhs) {
+			return *lhs == *rhs;
+		}
 };
 
 static uint64_t max_gpu_memory_available; // In B
 static uint64_t gpu_memory_available;	// In Bytes
 
-static std::priority_queue<std::shared_ptr<job_t>,\
-		std::vector<std::shared_ptr<job_t> >, CompareJob> jobs_queued_pr;
-static std::queue<std::shared_ptr<job_t> > jobs_queued_first;
-static std::list<std::shared_ptr<job_t> > jobs_executing;
-static std::queue<std::shared_ptr<job_t> > jobs_completed;
+static std::priority_queue<job_t *,\
+		std::vector<job_t *>, CompareJobSlack> jobs_queued_pr;
+static std::queue<job_t*> jobs_queued_first;
+static std::list<job_t*> jobs_executing;
+static std::queue<job_t*> jobs_completed;
 static std::unordered_map<pid_t, int> running_pid_jobs;	// How many jobs per pid concurrently running on GPU
 static int gpu_excl_jobs = 0;	// How many jobs are running on GPU with non-shareable flag
 
@@ -267,17 +274,17 @@ int main(int argc, char **argv)
 			if (q_job->req_type == QUEUED) {
 				if (q_job->first_flag) {
 					qtype = "QUEUED_FIRST";
-					jobs_queued_first.push(std::make_shared<job_t>(q_job));
+					jobs_queued_first.push(q_job);
 				} else {
 					qtype = "QUEUED_SLACK";
-					jobs_queued_pr.push(std::make_shared<job_t>(q_job));
+					jobs_queued_pr.push(q_job);
 					// Just updated pq, can try to process next job immediately
 					pq_wait_flag = false;
 				}
 			}
 			else {
 				qtype = "COMPLETED";
-				jobs_completed.push(std::make_shared<job_t>(q_job));
+				jobs_completed.push(q_job);
 			}
 			fprintf(stdout, "Job (%s, tid %d) added to %s queue.\n", q_job->job_name,\
 					q_job->tid, qtype);
@@ -293,15 +300,18 @@ int main(int argc, char **argv)
 		while (jobs_completed.size()) {
 			/* Dequeue job from completed */
 			fprintf(stdout, "Handling completed job!\n");
-			job_t *compl_job = jobs_completed.front().get();
+			job_t *compl_job = jobs_completed.front();
 			jobs_completed.pop();
 
 			/* Handle completed jobs */
 			if (job_release_gpu(compl_job) == 0) {
 				// Remove compl_job from jobs_executing list
-				auto idx = std::find(jobs_executing.begin(),
+				auto idx = std::find_if(jobs_executing.begin(),
 						jobs_executing.end(),
-						std::make_shared<job_t>(compl_job));
+						CompareJobPtr(compl_job));
+				job_t *front = jobs_executing.front();
+				fprintf(stderr, "front and compl_job: front (%d, %d, %s), compl_job (%d, %d, %s)\n",
+						front->pid, front->tid, front->job_name, compl_job->pid, compl_job->tid, compl_job->job_name);
 				assert(idx != jobs_executing.end());
 				jobs_executing.erase(idx);
 				fprintf(stdout, "Removed compl_job (%s, %d) from JOBS_EXECUTING.\n",\
@@ -328,7 +338,7 @@ int main(int argc, char **argv)
 		while (!queued_wait_for_complete &&
 				jobs_queued_first.size()) {
 			/* Peek at job from jobs_queued */
-			job_t *q_job = jobs_queued_first.front().get();
+			job_t *q_job = jobs_queued_first.front();
 
 			/* Handle queued jobs */
 			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
@@ -339,8 +349,8 @@ int main(int argc, char **argv)
 					fprintf(stdout, "\tJob must wait for job(s) to complete!\n");
 					queued_wait_for_complete = true;
 
-					// Adds q_job to back onto jobs_queued
-					jobs_queued_pr.push(std::make_shared<job_t>(q_job));
+					// Adds q_job to back onto jobs_queued_first
+					jobs_queued_first.push(q_job);
 					break;
 				} else {
 					// Job is too big to fit on the GPU, instruct client to abort
@@ -352,7 +362,8 @@ int main(int argc, char **argv)
 				}
 			} else {
 				// Adds q_job to jobs_executing on success
-				jobs_executing.push_back(std::make_shared<job_t>(q_job));
+				jobs_executing.push_back(q_job);
+				fprintf(stdout, "jobs executing has size: %d\n", jobs_executing.size());
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
@@ -371,7 +382,7 @@ int main(int argc, char **argv)
 		while (!pq_wait_flag &&
 				jobs_queued_pr.size()) {
 			/* Peek at top job from jobs_queued_pr */
-			job_t *q_job = jobs_queued_pr.top().get();
+			job_t *q_job = jobs_queued_pr.top();
 
 			/* Handle queued jobs */
 			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
@@ -392,7 +403,7 @@ int main(int argc, char **argv)
 				}
 			} else {
 				// Adds q_job to jobs_executing on success
-				jobs_executing.push_back(std::make_shared<job_t>(q_job));
+				jobs_executing.push_back(q_job);
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");

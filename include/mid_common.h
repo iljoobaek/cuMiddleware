@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <stdio.h> 		// *printf
+#include <stdint.h>				// int64_t
 #include <assert.h>		// assert()
 #include "mid_structs.h" // global_jobs_t
 // ------------------------ Defines ------------------------
@@ -25,20 +26,25 @@
 /* Jobs will be saved in shared memory objects named like: <name>_<tid> */
 #define JOB_SHM_NAME(tid, name_s) #name_s ## _ ## #tid
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int shm_init(const char *name);
 int shm_destroy(const char *name, int fd);
 int init_global_jobs(int *fd, global_jobs_t **addr);
 int get_shared_job(const char *name, job_t **save_job);
 
 bool jobs_equal(job_t *a, job_t *b);
-int build_shared_job(pid_t tid, const char *job_name,
-						uint64_t lpm, uint64_t apm, uint64_t wpm,
-						double let, double aet, double wet,
-						unsigned int run_count,
-						time_t deadline,
+int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
+						int64_t slacktime, bool first_flag,
+						bool shareable_flag,
+						uint64_t required_mem,
 						enum job_type req_type,
 						job_t **save_new_job,
 						char *copy_shm_name);
 int destroy_shared_job(job_t **shared_job_ptr);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

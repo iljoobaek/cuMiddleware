@@ -2,37 +2,36 @@
 #define TAG_GPU_H
 
 #include <stdint.h> // uint64_t
-#include <time.h> // time_t
+#include <sys/types.h> // pid_t
 #include "mid_structs.h" // MAX_NAME_LENGTH
 
 /* Meta-data structs that describe stats for a repeated job_t struct */
 typedef struct meta_job {
 	// job_t metadata
     pid_t tid;                      // tid (since client may be multithreaded)
-    int priority;
 
 	char job_name[MAX_NAME_LENGTH];
     uint64_t last_peak_mem;			// In bytes
 	uint64_t avg_peak_mem;
 	uint64_t worst_peak_mem;
-    double last_exec_time;
-   	double avg_exec_time;
-    double worst_exec_time;
+    int64_t last_exec_time; // Execution time in (us)
+   	int64_t avg_exec_time;
+    int64_t worst_exec_time;
 	unsigned int run_count;
-	time_t deadline;
 
 	// running metadata fields
 	uint64_t c_mem_util;
+	int64_t job_start_us;
 } meta_job_t;
 
 /* C-exposed Interface for easier manipulation/creation of a meta_job */
 #ifdef __cplusplus
 extern "C" {
 #endif
-void *CreateMetaJob(pid_t tid, int priority, const char *job_name, 
+void *CreateMetaJob(pid_t tid, const char *job_name,
 		uint64_t lpm, uint64_t apm, uint64_t wpm,
-		double let, double aet, double wet,
-		unsigned int run_count, time_t deadline);
+		int64_t let, int64_t aet, int64_t wet,
+		unsigned int run_count);
 void DestroyMetaJob(void *mj);
 #ifdef __cplusplus
 }
@@ -42,32 +41,26 @@ void DestroyMetaJob(void *mj);
 /*
  * In order to communicate GPU execution metadata and intent to server,
  * we wrap any amount of work on the GPU (i.e. a function) with "raw"
- * tag_begin()/tag_begin() interface:
+ * tag_job_begin()/tag_job_end() interface:
  *
- * tag_begin() tells server metadata about intended GPU execution, blocks
+ * tag_job_begin() tells server metadata about intended GPU execution, blocks
  ** until the server allows execution (may be sharing the GPU device)
- * tag_begin() is called after client work is completed to notify server
+ * tag_job_end() is called after client work is completed to notify server
  ** that client releases GPU resources.
  *
- * See tag_decorator() wrapper function below to use stateful wrapping of 
+ * See tag_decorator() wrapper function in tag_dec.h to use stateful wrapping of
  * repeated work-unit execution - wrapper will track metadata for subsequent
- * tag_begin() calls for the same work.
- *              */
+ * tag_job_*() calls for the same work.
+*/
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-int tag_begin(pid_t tid, const char* unit_name,
-			uint64_t last_peak_mem, 
-			uint64_t avg_peak_mem, 
-			uint64_t worst_peak_mem, 
-			double last_exec_time,
-			double avg_exec_time, 
-			double worst_exec_time, 
-			unsigned int run_count, 
-			time_t deadline
-		);
+int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
+		int64_t slacktime, bool first_flag, bool shareable_flag,
+		uint64_t required_mem);
 
-int tag_end(pid_t tid, const char *unit_name);
+int tag_job_end(pid_t pid, pid_t tid, const char *job_name);
 #ifdef __cplusplus
 }
 #endif

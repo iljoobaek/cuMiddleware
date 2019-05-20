@@ -2,18 +2,18 @@
 #include <unistd.h> // sleep()
 #include <sys/types.h> // pid_t
 #include "tag_frame.h" // FrameController
-#include "tag_gpu2.h"
+#include "tag_gpu.h"
 
 int main(int argc, char **argv) {
 
-	pid_t pid = 1;
-	pid_t tid = 0;
+	pid_t pid = getpid();
+	pid_t tid = gettid();
 	const char *job_name = "opencv_get_image";
 	for (int i = 0; i < 10000; i++)
 	{
 		fprintf(stdout, "opencv: tag_beginning() %d\n", i);
 		// Tagging begin ///////////////////////////////////////////////////////////////////
-		tag_job_begin(pid, tid, job_name, 
+		int res = tag_job_begin(pid, tid, job_name, 
 				15L, true, true, 1UL);
 
         usleep(1000);

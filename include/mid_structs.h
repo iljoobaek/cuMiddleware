@@ -16,6 +16,7 @@
 #include <pthread.h> // pthread_mutex_t, pthread_cond_t
 #include <time.h> // time_t
 #include <stdint.h> // uint64_t
+#include <string.h> //strcmp
 #include <stdbool.h> // bool
 
 #define MAX_NAME_LENGTH 80 
@@ -24,48 +25,19 @@
 #define JOB_MEM_NAME_MAX_LEN 100
 
 // ------------------------ Data structures ------------------------
-// struct for a list of parameters to launch kernel
-typedef struct launch_params {
-    int num_blocks;
-    int num_threads;
-} launch_params_t;
-
-// struct for a list of kernel function parameters
-typedef struct kernel_params {
-    int num_args;
-    void *data_list;                    // linked list of data structs,
-                                        // with pointer to next argument
-} kernel_params_t;
-
-// a struct for passing data between client and server
-typedef struct data {
-    void *next_arg;                 // address of data array?
-    void *data;
-} data_t;
-
-// a struct for passing data between client and server
-typedef struct function {
-	char *start_addr; 			// kust of addresses of different functions?
-	int num_funcs;
-} func_t;
-
 enum job_type {QUEUED, COMPLETED};
 
 // struct for a job, or a single GPU request;
 typedef struct job {
 	// job metadata
+	pid_t pid;						// process id of job
     pid_t tid;                      // tid (since client may be multithreaded)
-    int priority;
 
 	char job_name[MAX_NAME_LENGTH];
-    uint64_t last_peak_mem;			// In bytes
-	uint64_t avg_peak_mem;
-	uint64_t worst_peak_mem;
-    double last_exec_time;
-   	double avg_exec_time;
-    double worst_exec_time;
-	unsigned int run_count;
-	time_t deadline;
+	int64_t slacktime;				// Est. time remaining before job's deadline after execution
+	bool first_flag;				// First-run flag for job (slacktime ignored if True)
+	bool shareable_flag;			// Can job execute on GPU with other shareable jobs?
+	uint64_t required_mem;			// Worst-case job GPU memory requirement
 	enum job_type req_type;			// 'queued' or 'completed'
 	
 	// Client-side/server-side attrs - communication properties
@@ -73,11 +45,17 @@ typedef struct job {
 	pthread_cond_t client_wake;		// cond_var used to block client until ready
 	bool client_exec_allowed;		// flag determining whether client should execute when woken
 
-	// Server-side attributes - linked-list properties
-	int ll_size;					// TODO: number of next elements + 1, 0 if empty
-    struct job *next;                     // this is a linked list
-} job_t;
+#ifdef __cplusplus
+	inline bool operator==(const job& rhs){ 
+#include <stdio.h>
+		fprintf(stderr, "Hello!\n");
+		return pid == rhs.pid \
+			&& tid == rhs.tid \
+			&& strcmp(job_name, rhs.job_name) == 0;
+	}
+#endif
 
+} job_t;
 
 
 // GLOBAL struct that keeps track of all the jobs submitted to middleware, and

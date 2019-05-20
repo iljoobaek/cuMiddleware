@@ -8,7 +8,7 @@
 #include <stdint.h> // int64_t
 #include <cmath> // round(double)
 
-#include "tag_state2.h" // TagState
+#include "tag_state.h" // TagState
 #include "tag_frame.h" // Implements fn's in this header file
 
 /* Define FrameJob class implementation */

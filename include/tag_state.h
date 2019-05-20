@@ -4,15 +4,16 @@
 #include <sys/types.h> /* pid_t */
 #include <unistd.h>  // syscall()
 #include <sys/syscall.h> // SYS_gettid
+#include <stdint.h> // int64_t
 
 #ifdef __cplusplus
+#include <unordered_map> // unordered_map
 #include <iostream> // std::cout
 #include <memory> /* std::shared_ptr */
 #include <mutex> /* std::mutex */
-#include <unordered_map> // unordered_map
 #endif
 
-#include "tag_gpu.h" /* meta_job_t */
+#include "tag_gpu2.h" /* meta_job_t */
 
 #define gettid() syscall(SYS_gettid)
 
@@ -33,6 +34,7 @@ struct TagState {
 	std::shared_ptr<meta_job_t> init_meta_job;
 	std::mutex hm_lock;
 	std::unordered_map<pid_t, std::shared_ptr<meta_job_t> >tid_to_meta_job;
+	pid_t tag_pid;
 
 	TagState();
 	TagState(const meta_job_t *inp_init_meta_job);
@@ -45,16 +47,16 @@ struct TagState {
 	 */
 	meta_job_t *get_local_meta_job_for_tid(pid_t tid);
 
-	// Use meta job to construct call to tag_end
-	int tag_end_from_meta_job(meta_job_t *mj);
-		
-	// Use meta job to construct call tag_begin 
-	int tag_begin_from_meta_job(meta_job_t *mj);
+	// Request permission to run on GPU
+	// on success, starts the timer for job (specific to tid)
+	int acquire_gpu(pid_t tid, int64_t slacktime, bool first_flag, bool shareable_flag);
+	int release_gpu(pid_t tid);
 
-	int acquire_gpu();
-	int release_gpu();
-	void start_timer();
-	void end_timer();
+	/* Stats retrieval */
+	// Note: execution time measured in whole microseconds
+	int64_t get_wc_exec_time_for_tid(pid_t tid) const ;  // Returns -1 if not yet known
+	int64_t get_max_wc_exec_time() const;				// Returns -1 if not yet known
+	int64_t get_required_mem_for_tid(pid_t tid) const; // Returns -1 if not yet known
 };
 #endif
 
@@ -65,12 +67,11 @@ extern "C" {
 void *CreateTagStateObj(const meta_job_t *inp_init_meta_job); 
 void DestroyTagStateObj(void *tag_obj);
 meta_job_t *TagState_get_local_meta_job_for_tid(void *tag_obj, pid_t tid);
-int TagState_tag_end_from_meta_job(void *tag_obj, meta_job_t *mj);
-int TagState_tag_begin_from_meta_job(void *tag_obj, meta_job_t *mj);
-int TagState_acquire_gpu(void *tag_obj);
-int TagState_release_gpu(void *tag_obj);
-void TagState_start_timer(void *tag_obj);
-void TagState_end_timer(void *tag_obj);
+int TagState_acquire_gpu(void *tag_obj, pid_t tid, int64_t slacktime, bool first_flag, bool shareable_flag);
+int TagState_release_gpu(void *tag_obj, pid_t tid);
+int64_t TagState_get_wc_exec_time_for_tid(void *tag_obj, pid_t tid);
+int64_t TagState_get_max_wc_exec_time(void *tag_obj);
+uint64_t TagState_get_required_mem_for_tid(void *tag_obj, pid_t tid);
 #ifdef __cplusplus
 }
 #endif

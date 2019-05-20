@@ -4,9 +4,10 @@
 #include <sys/types.h> /* pid_t */
 #include <stdint.h>	// int64_t
 #ifdef __cplusplus
-#include <dequeue> 	// std::dequeue
+#include <deque> 	// std::deque
 #include <mutex> /* std::mutex */
 #include <chrono> // std::chrono::duration
+#include <string> // std::string
 #endif
 
 #include "tag_state.h" /* TagState */
@@ -42,14 +43,14 @@ struct FrameJob {
 	// On success, starts timer for TagState object
 	int prepare_job(pid_t tid, int64_t slacktime, bool first_flag);
 	int release_job(pid_t tid);
-}
+};
 #endif
 
 /* C-exposed interface for FrameJob */
 #ifdef __cplusplus
 extern "C" {
 #endif 
-void *CreateFrameJobObj(const char *fj_name, const void* tag_state_obj); 
+void *CreateFrameJobObj(const char *fj_name, bool shareable_flag); 
 void DestroyFrameJobObj(void *fj_obj);
 int64_t FrameJob_get_expected_exec_time_for_tid(void *fj_obj, pid_t tid);
 uint64_t FrameJob_get_expected_required_mem_for_tid(void *fj_obj, pid_t tid);

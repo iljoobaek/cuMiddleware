@@ -13,7 +13,7 @@
 #include <mutex> /* std::mutex */
 #endif
 
-#include "tag_gpu2.h" /* meta_job_t */
+#include "tag_gpu.h" /* meta_job_t */
 
 #define gettid() syscall(SYS_gettid)
 
@@ -37,6 +37,7 @@ struct TagState {
 	pid_t tag_pid;
 
 	TagState();
+	TagState(const char *job_name);
 	TagState(const meta_job_t *inp_init_meta_job);
 	~TagState();
 

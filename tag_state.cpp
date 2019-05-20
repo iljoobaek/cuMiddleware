@@ -7,6 +7,7 @@
 #include <unistd.h>  // getpid()
 #include <chrono>	// std::chrono::high_resolution_clock
 
+#include "mid_structs.h" // MAX_NAME_LENGTH
 #include "tag_state.h" // *_running_meta_job_for_tid, TagState class
 #include "tag_gpu.h" /* meta_job_t */
 
@@ -48,6 +49,17 @@ int set_running_job_for_tid(pid_t tid, meta_job_t *mj) {
 	/* Default constructor */
 TagState::TagState() : init_meta_job(std::make_shared<meta_job_t>()) {
 	memset(init_meta_job.get(), 0, sizeof(meta_job_t));
+	// Save process' pid for use in tag_job_* calls
+	tag_pid = getpid();
+}
+
+TagState::TagState(const char *job_name) : init_meta_job(std::make_shared<meta_job_t>()) {
+	// empty bits in init_meta_job, save given job name
+	memset(init_meta_job.get(), 0, sizeof(meta_job_t));
+	strncpy(init_meta_job->job_name, job_name, MAX_NAME_LENGTH);
+	init_meta_job->tid = 0;
+	// Save process' pid for use in tag_job_* calls
+	tag_pid = getpid();
 }
 
 TagState::TagState(const meta_job_t *inp_init_meta_job) : init_meta_job(std::make_shared<meta_job_t>()) {
@@ -127,16 +139,22 @@ int TagState::release_gpu(pid_t call_tid) {
 	}
 	curr_meta_job->last_exec_time = job_time_us;
 
+	// TODO: Actually collect memory metrics intercepted from CUDA calls
+	curr_meta_job->worst_peak_mem = 1LU;
+
 	return res;
 }
 
 /* Stats retrieval */
 // All return -1 if not yet known
 int64_t TagState::get_wc_exec_time_for_tid(pid_t tid) const   {
-	if (tid_to_meta_job.find(tid) == tid_to_meta_job.end()) {
+	auto it = tid_to_meta_job.find(tid);
+	if (it == tid_to_meta_job.end()) {
+		return -1;
+	} else if (tid_to_meta_job.at(tid)->worst_exec_time == 0) {
 		return -1;
 	}
-	return tid_to_meta_job.at(tid).get()->worst_exec_time;
+	return tid_to_meta_job.at(tid)->worst_exec_time;
 }
 int64_t TagState::get_max_wc_exec_time() const {
 	// Loop over each thread's meta_jobs and find maximum
@@ -150,11 +168,15 @@ int64_t TagState::get_max_wc_exec_time() const {
 	return max_wc_exec_time;
 }
 
+// Returns -1 if not yet known
 int64_t TagState::get_required_mem_for_tid(pid_t tid) const {
-	if (tid_to_meta_job.find(tid) == tid_to_meta_job.end()) {
+	auto it = tid_to_meta_job.find(tid);
+	if (it == tid_to_meta_job.end()) {
+		return -1;
+	} else if (tid_to_meta_job.at(tid)->worst_peak_mem == 0) {
 		return -1;
 	}
-	return tid_to_meta_job.at(tid).get()->worst_peak_mem;
+	return tid_to_meta_job.at(tid)->worst_peak_mem;
 }
 
 

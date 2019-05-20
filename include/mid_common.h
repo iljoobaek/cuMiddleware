@@ -20,7 +20,7 @@
 #define JOB_MEM_NAME "job_mem"
 #define DATA_MEM_NAME "data_mem"
 
-#define SLEEP_MICROSECONDS (unsigned int)50 
+#define SLEEP_MICROSECONDS (unsigned int)100000
 #define GLOBAL_MEM_SIZE sizeof(global_jobs_t)
 
 /* Jobs will be saved in shared memory objects named like: <name>_<tid> */

@@ -29,8 +29,8 @@ enum job_type {QUEUED, COMPLETED};
 // struct for a job, or a single GPU request;
 typedef struct job {
 	// job metadata
+	pid_t pid;						// process id of job
     pid_t tid;                      // tid (since client may be multithreaded)
-    int priority;
 
 	char job_name[MAX_NAME_LENGTH];
 	double slacktime;				// Est. time remaining before job's deadline after execution

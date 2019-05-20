@@ -56,11 +56,11 @@ void DestroyMetaJob(void *mj);
 extern "C" {
 #endif
 // TODO: Use pid instead of tid
-int tag_job_begin(pid_t pid, const char* job_name,
+int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
 		double slacktime, bool first_flag, bool shareable_flag,
 		uint64_t required_mem);
 
-int tag_job_end(pid_t pid, const char *job_name);
+int tag_job_end(pid_t pid, pid_t tid, const char *job_name);
 #ifdef __cplusplus
 }
 #endif

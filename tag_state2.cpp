@@ -97,7 +97,7 @@ int TagState::acquire_gpu(pid_t call_tid, double slacktime, bool first, bool sha
 	// to this thread's job (i.e. for this tid)
 	set_running_job_for_tid(call_tid, curr_meta_job);
 
-	return tag_job_begin(tag_pid, curr_meta_job->job_name, slacktime, first, shareable,
+	return tag_job_begin(tag_pid, call_tid, curr_meta_job->job_name, slacktime, first, shareable,
 			curr_meta_job->worst_peak_mem);
 }
 
@@ -106,7 +106,7 @@ int TagState::release_gpu(pid_t call_tid) {
 	meta_job_t *curr_meta_job = get_local_meta_job_for_tid(call_tid);
 
 	// Notify server of end of work
-	int res = tag_job_end(tag_pid, curr_meta_job->job_name);
+	int res = tag_job_end(tag_pid, call_tid, curr_meta_job->job_name);
 	curr_meta_job->run_count++;
 	return res;
 }

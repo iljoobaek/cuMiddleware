@@ -13,33 +13,39 @@
 #include <signal.h>             // sigint can trigger the clean up process;
 #include <dlfcn.h>                             // dlsym, RTLD_DEFAULT
 
+#include <algorithm>	// std::find
+#include <cassert>		// assert()
 #include <queue>		// std::queue, std::priority_queue, std::vector
+#include <list>			// std::list
 #include <memory>		// std::shared_ptr
+#include <unordered_map>	// std::unordered_map
 
 #include "mid_structs2.h"
 #include "mid_queue.h"
 #include "mid_common2.h"
+
+// Only keep last 100 completed jobs
+#define MAX_COMPLETED_QUEUE_SIZE 100
 
 struct CompareJob{
 public:
 	/* One job is higher priority than another if its slacktime is <= to others */
     bool operator()(std::shared_ptr<job_t>& j1, std::shared_ptr<job_t>& j2)
     {
-		return j1->slacktime <= j2->slacktime;
+		return j2->slacktime <= j1->slacktime;
     }
 };
 
 static uint64_t max_gpu_memory_available; // In B
 static uint64_t gpu_memory_available;	// In Bytes
-static job_t *jobs_executing;
-static job_t *jobs_queued;
-static job_t *jobs_completed;
 
 static std::priority_queue<std::shared_ptr<job_t>,\
 		std::vector<std::shared_ptr<job_t> >, CompareJob> jobs_queued_pr;
 static std::queue<std::shared_ptr<job_t> > jobs_queued_first;
-static std::queue<std::shared_ptr<job_t> > jobs_executing;
+static std::list<std::shared_ptr<job_t> > jobs_executing;
 static std::queue<std::shared_ptr<job_t> > jobs_completed;
+static std::unordered_map<pid_t, int> running_pid_jobs;	// How many jobs per pid concurrently running on GPU
+static int gpu_excl_jobs = 0;	// How many jobs are running on GPU with non-shareable flag
 
 
 static int GJ_fd;
@@ -47,15 +53,10 @@ static global_jobs_t *GJ;
 // -------------------------- Server Side Functions ----------------------------
 
 
-// TODO: Better name and interface
 void destroy_global_jobs(int GJ_fd)
 {
 	if (GJ_fd >= 0)
 	{
-		// Valid fd means preperly init'd
-		unmap_queue(jobs_queued);
-		unmap_queue(jobs_executing);
-		unmap_queue(jobs_completed);
 		close(GJ_fd);
 		shm_unlink(GLOBAL_MEM_NAME);
 	}
@@ -75,7 +76,7 @@ int job_release_gpu(job_t *comp_job) {
 		return -1;
 	}
 
-	// Assumes that job is coming from jobs_completed
+	// Verify release of memory
 	if (gpu_memory_available + comp_job->required_mem < gpu_memory_available) {
 		// Something's wrong, overflow occurred when releasing memory
 		fprintf(stderr, "Overflow occurred when releasing gpu for job with name %s (wpm %lu, avail %lu)\n!",\
@@ -85,59 +86,119 @@ int job_release_gpu(job_t *comp_job) {
 
 	// Acquired memory
 	int acquired_mem = comp_job->required_mem ? comp_job->required_mem : max_gpu_memory_available;
+
+	// Verify decrement number of jobs running under job's pid
+	auto it = running_pid_jobs.find(comp_job->pid);
+	if (it == running_pid_jobs.end()) {
+		fprintf(stderr, "Couldn't release job because cannot find is running pid (%d)!\n", comp_job->pid);
+		return -2;
+	} else {
+		if (running_pid_jobs[comp_job->pid]< 1) {
+			fprintf(stderr, "Couldn't release job because too running pid jobs for pid (%d)!\n", comp_job->pid);
+			return -2;
+		}
+	}
+	// If job was shared, decrement number of gpu_excl_jobs
+	if (!comp_job->shareable_flag) {
+		if (gpu_excl_jobs < 1) {
+			fprintf(stderr, "Couldn't release job because too few gpu_excl_jobs!\n");
+			return -2;
+		}
+		gpu_excl_jobs--;
+	}
+
+	// Actually release memory and reduce running_pid_jobs
 	gpu_memory_available += acquired_mem;
+	running_pid_jobs[comp_job->pid]--;
 	return 0;
 }
 
-/*
- * Use j's metadata (worst_peak_mem) to determine whether j can run immediately
- * : if worst_peak_mem is 0, then this job must run exclusively on the GPU to collect metadata
- * : else, compare worst_peak_mem with current gpu_memory_available (and max_gpu_memory_available)
- *  to determine whether job can run immediately (or at all).
- *
- *  Returns 0 on success, -1 when job must wait, -2 when job must abort
- */
-// TODO: support shareable and first flags
-int job_acquire_gpu(job_t *j) {
-	if (!j) {
-		fprintf(stderr, "Couldn't acquire job because of bad pointer!\n");
-		return -2;
+// Helper function for bookkeeping of allocating gpu resources for job
+void alloc_gpu_for_job(job_t *j) {
+	if (j->required_mem == 0) {
+		// Allocate all of gpu
+		gpu_memory_available = 0;
+	} else {
+		gpu_memory_available -= j->required_mem;
 	}
 
-	if (j->required_mem == 0) {
-		// This job has never run before, needs to run exclusively
-		if (max_gpu_memory_available > 0) {
-		   if (gpu_memory_available == max_gpu_memory_available) {
-				gpu_memory_available = 0;
-				return 0;
-		   } else {
-			   // Can't run exclusively yet, must wait for jobs to complete
-			   return -1;
-		   }
+	auto it = running_pid_jobs.find(j->pid);
+	if (it != running_pid_jobs.end()) {
+		// Increment number of threads running for job's pid
+		running_pid_jobs[j->pid]++;
+	} else {
+		running_pid_jobs[j->pid] = 1;
+	}
+
+	if (j->shareable_flag) {
+		gpu_excl_jobs++;
+	}
+	return;
+}
+
+/*
+ * A job can acquire the gpu under the following conditions:
+ * 1) Job's memory requirement fits on memory available for GPU
+ * AND 
+ * 2) job can appropriately share the GPU with other threads or pids
+ * Returns 0 on success, -1 on wait signal, -2 on abort signal for job
+ */
+int job_acquire_gpu(job_t *j) {
+	if (!j) return -2;
+
+	bool can_alloc_mem = false;
+	if (j->required_mem > max_gpu_memory_available) {
+		// Must abort job, can never run on the GPU
+		return -2;
+	} else {
+		if (j->required_mem == 0 && gpu_memory_available == max_gpu_memory_available) {
+			can_alloc_mem = true;
+		} else if (j->required_mem < gpu_memory_available) {
+			can_alloc_mem = true;
+		} else {
+			can_alloc_mem = false;
 		}
-		// Something wrong with max_gpu_memory available
-		fprintf(stderr, "Couldn't run job exclusive, bad initialization of max_gpu_memory_available: %lu\n",\
-				max_gpu_memory_available);
+	}
+	if (!can_alloc_mem) {
+		// Must wait for jobs to free up GPU mem
+		return -1;
+	}
+
+	bool can_run_now = false;
+	if (running_pid_jobs.size() == 0) {
+		can_run_now = true;
+	} else {
+		auto it = running_pid_jobs.find(j->pid);
+		if (it != running_pid_jobs.end()) {
+			// Job shares pid with running job
+			if (j->shareable_flag) {
+				can_run_now = true;
+			} else if (running_pid_jobs.size() == 1 && !j->shareable_flag) {
+				can_run_now = true;
+			} else {
+				// Job is not shareable and multiple pids running, must wait
+				can_run_now = false;
+			}
+		} else {
+			// Job is first of its process to run next to other jobs
+			if (j->shareable_flag) {
+				if (gpu_excl_jobs == 0) {
+					// Can run if no other jobs are not-shareable
+					can_run_now = true;
+				} else {
+					can_run_now = false;
+				}
+			} else {
+				// Job can't share gpu with other processes
+				can_run_now = false;
+			}
+		}
+	}
+	if (!can_run_now) {
 		return -1;
 	} else {
-		// Check if job can ever run first
-		if (j->required_mem > max_gpu_memory_available) {
-			fprintf(stderr, "Job with name %s must abort (wpm %lu vs. max %lu)!\n",\
-					j->job_name, j->required_mem, max_gpu_memory_available);
-			return -2;
-		} else if (j->required_mem > gpu_memory_available) {
-			// Job must wait to run
-			fprintf(stderr, "Job with name %s must wait (wpm %lu vs. avail %lu)\n",\
-					j->job_name, j->required_mem, gpu_memory_available);
-			return -1;
-		} else {
-			// Job can run immediately
-			fprintf(stderr, "Job with name %s can run (wpm %lu vs. avail %lu, new avail %lu)\n",\
-					j->job_name, j->required_mem , gpu_memory_available,
-					gpu_memory_available - j->required_mem);
-			gpu_memory_available -= j->required_mem;
-			return 0;
-		}
+		alloc_gpu_for_job(j);
+		return 0;
 	}
 }
 
@@ -180,9 +241,10 @@ int main(int argc, char **argv)
 	// Set up signal handler
 	signal(SIGINT, handle_sigint);
 
-	// Init flag controlling when jobs_queued can't be emptied becase
+	// Init flags controlling when jobs_queued_* can't be emptied becase
 	// GPU is at capacity
 	bool queued_wait_for_complete = false;
+	bool pq_wait_flag = false;
 
 	// Global jobs queue has been initialized
 	// Begin waiting for job_shm_names to be enqueued (sample every 250ms)
@@ -201,18 +263,21 @@ int main(int argc, char **argv)
 			}
 
 			// Enqueue job request to right queue
-			job_t **queue_addr =NULL;
 			const char *qtype = NULL;
 			if (q_job->req_type == QUEUED) {
-				qtype = "QUEUED";
-				queue_addr = &jobs_queued;
+				if (q_job->first_flag) {
+					qtype = "QUEUED_FIRST";
+					jobs_queued_first.push(std::make_shared<job_t>(q_job));
+				} else {
+					qtype = "QUEUED_SLACK";
+					jobs_queued_pr.push(std::make_shared<job_t>(q_job));
+					// Just updated pq, can try to process next job immediately
+					pq_wait_flag = false;
+				}
 			}
 			else {
 				qtype = "COMPLETED";
-				queue_addr = &jobs_completed;
-			}
-			if (enqueue_job(q_job, queue_addr) < 0) {
-				fprintf(stderr, "Failed to enqueue job! Job type %d\n", q_job->req_type);
+				jobs_completed.push(std::make_shared<job_t>(q_job));
 			}
 			fprintf(stdout, "Job (%s, tid %d) added to %s queue.\n", q_job->job_name,\
 					q_job->tid, qtype);
@@ -225,42 +290,45 @@ int main(int argc, char **argv)
 		pthread_mutex_unlock(&(GJ->requests_q_lock));
 
 		/* Handle all completed jobs first to release GPU resources */
-		while (jobs_completed && jobs_completed->ll_size > 0) {
+		while (jobs_completed.size()) {
 			/* Dequeue job from completed */
 			fprintf(stdout, "Handling completed job!\n");
-			job_t *compl_job = NULL;
-			dequeue_job_from_queue(&jobs_completed, &compl_job);
+			job_t *compl_job = jobs_completed.front().get();
+			jobs_completed.pop();
 
 			/* Handle completed jobs */
 			if (job_release_gpu(compl_job) == 0) {
-				remove_from_queue(compl_job, &jobs_executing);
+				// Remove compl_job from jobs_executing list
+				auto idx = std::find(jobs_executing.begin(),
+						jobs_executing.end(),
+						std::make_shared<job_t>(compl_job));
+				assert(idx != jobs_executing.end());
+				jobs_executing.erase(idx);
 				fprintf(stdout, "Removed compl_job (%s, %d) from JOBS_EXECUTING.\n",\
 						compl_job->job_name, compl_job->tid);
 
 				/* TODO: Avoid having client sleep waiting for server */
 				pthread_cond_signal(&(compl_job->client_wake));
 
-				// Reset flag since a job just released gpu resources
+				// Reset flags since a job just released gpu resources
 				queued_wait_for_complete = false;
+				pq_wait_flag = false;
 
 				// Destroy shared job
 				destroy_shared_job(&compl_job);
 			}
 		}
 
-		/* As long as jobs_queued aren't waiting for release of GPU
-		 * resources, trigger execution of as many queued jobs as
-		 * can fit on GPU.
+		/*
+		 * Next, run any jobs that have never run yet (and therefore have no priority).
 		 */
-		if (jobs_queued) {
-			fprintf(stdout, "jobs_queued size %d\n", jobs_queued->ll_size);
+		if (jobs_queued_first.size()) {
+			fprintf(stdout, "jobs_queued_first size %d\n", (int)jobs_queued_first.size());
 		}
 		while (!queued_wait_for_complete &&
-				jobs_queued &&
-				jobs_queued->ll_size > 0) {
-			/* Dequeue job from jobs_queued */
-			job_t *q_job = NULL;
-			dequeue_job_from_queue(&jobs_queued, &q_job);
+				jobs_queued_first.size()) {
+			/* Peek at job from jobs_queued */
+			job_t *q_job = jobs_queued_first.front().get();
 
 			/* Handle queued jobs */
 			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
@@ -272,7 +340,7 @@ int main(int argc, char **argv)
 					queued_wait_for_complete = true;
 
 					// Adds q_job to back onto jobs_queued
-					enqueue_job(q_job, &jobs_queued);
+					jobs_queued_pr.push(std::make_shared<job_t>(q_job));
 					break;
 				} else {
 					// Job is too big to fit on the GPU, instruct client to abort
@@ -284,19 +352,60 @@ int main(int argc, char **argv)
 				}
 			} else {
 				// Adds q_job to jobs_executing on success
-				enqueue_job(q_job, &jobs_executing);
+				jobs_executing.push_back(std::make_shared<job_t>(q_job));
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
 				trigger_job(q_job);
 			}
+			// Actually pop job off queue
+			jobs_queued_first.pop();
+		}
+
+		/*
+		 * Lastly, run as many jobs (according to priority) as can fit on GPU.
+		 */
+		if (jobs_queued_pr.size()) {
+			fprintf(stdout, "jobs_queued_pr size %d\n", (int)jobs_queued_pr.size());
+		}
+		while (!pq_wait_flag &&
+				jobs_queued_pr.size()) {
+			/* Peek at top job from jobs_queued_pr */
+			job_t *q_job = jobs_queued_pr.top().get();
+
+			/* Handle queued jobs */
+			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
+			int res = job_acquire_gpu(q_job);
+			if (res < 0) {
+				if (res == -1) {
+					// Failed to acquire GPU, must wait for other jobs to complete
+					fprintf(stdout, "\tJob must wait for job(s) to complete!\n");
+					pq_wait_flag = true;
+					break;
+				} else {
+					// Job is too big to fit on the GPU, instruct client to abort
+					// job
+					fprintf(stdout, "\tJob must ABORT!\n");
+					abort_job(q_job);
+					// Destroy shared job
+					destroy_shared_job(&q_job);
+				}
+			} else {
+				// Adds q_job to jobs_executing on success
+				jobs_executing.push_back(std::make_shared<job_t>(q_job));
+
+				// Wake client to trigger execution
+				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
+				trigger_job(q_job);
+			}
+			// Pop job off priority-queue 
+			jobs_queued_pr.pop();
 		}
 
 		// Sleep before starting loop again
 		usleep(SLEEP_MICROSECONDS);
 	}
 
-	// TODO: Better name and interface
 	fprintf(stdout, "Cleaning up server...\n");
 	destroy_global_jobs(GJ_fd);
 	return 0;

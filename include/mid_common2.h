@@ -31,7 +31,7 @@ int init_global_jobs(int *fd, global_jobs_t **addr);
 int get_shared_job(const char *name, job_t **save_job);
 
 bool jobs_equal(job_t *a, job_t *b);
-int build_shared_job(pid_t tid, const char *job_name,
+int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
 						double slacktime, bool first_flag,
 						bool shareable_flag,
 						uint64_t required_mem,

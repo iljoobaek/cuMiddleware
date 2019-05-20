@@ -137,7 +137,7 @@ bool jobs_equal(job_t *a, job_t *b) {
 }
 
 // TODO: switch to using pid in job, but saving shm_obj by tid
-int build_job(pid_t tid, const char *job_name,
+int build_job(pid_t pid, pid_t tid, const char *job_name,
 						double slacktime, bool first_flag,
 						bool shareable_flag,
 						uint64_t required_mem,
@@ -147,6 +147,7 @@ int build_job(pid_t tid, const char *job_name,
 	if (!shm_job) return -1;
 
 	// Init job with metadata
+	shm_job->pid = pid;
 	shm_job->tid = tid;
 	strncpy(shm_job->job_name, job_name, JOB_MEM_NAME_MAX_LEN);
 	shm_job->slacktime = slacktime;
@@ -174,7 +175,7 @@ int build_job(pid_t tid, const char *job_name,
  	return 0;
 }
 
-int build_shared_job(pid_t tid, const char *job_name,
+int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
 						double slacktime, bool first_flag,
 						bool shareable_flag,
 						uint64_t required_mem,
@@ -218,7 +219,7 @@ int build_shared_job(pid_t tid, const char *job_name,
     }
 
 	// Save job and job_shm_name for caller
-	DEBUG_FN(build_job, tid, job_name,
+	DEBUG_FN(build_job, pid, tid, job_name,
 						slacktime, first_flag, shareable_flag,
 						required_mem,
 						req_type, shm_job);

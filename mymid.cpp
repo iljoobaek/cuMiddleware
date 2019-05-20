@@ -173,6 +173,7 @@ int job_acquire_gpu(job_t *j) {
 	}
 	if (!can_alloc_mem) {
 		// Must wait for jobs to free up GPU mem
+		fprintf(stderr, "Job must wait, not enough memory to run yet!\n");
 		return -1;
 	}
 
@@ -189,6 +190,7 @@ int job_acquire_gpu(job_t *j) {
 				can_run_now = true;
 			} else {
 				// Job is not shareable and multiple pids running, must wait
+				fprintf(stderr, "Job is NOT shareable, (1) and there are other pids running\n");
 				can_run_now = false;
 			}
 		} else {
@@ -199,10 +201,12 @@ int job_acquire_gpu(job_t *j) {
 					// Can run if no other jobs are not-shareable
 					can_run_now = true;
 				} else {
+					fprintf(stderr, "Job IS shareable, and there are other exclusive jobs present\n");
 					can_run_now = false;
 				}
 			} else {
 				// Job can't share gpu with other processes
+				fprintf(stderr, "Job is NOT shareable, (2) and there are other pids running on GPU\n");
 				can_run_now = false;
 			}
 		}
@@ -362,8 +366,6 @@ int main(int argc, char **argv)
 					fprintf(stdout, "\tJob must wait for job(s) to complete!\n");
 					queued_wait_for_complete = true;
 
-					// Adds q_job to back onto jobs_queued_first
-					jobs_queued_first.push(q_job);
 					break;
 				} else {
 					// Job is too big to fit on the GPU, instruct client to abort

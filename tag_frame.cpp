@@ -8,13 +8,16 @@
 #include <stdint.h> // int64_t
 #include <cmath> // round(double)
 
+#include "mid_structs.h" // MAX_NAME_LENGTH
 #include "tag_state.h" // TagState
 #include "tag_frame.h" // Implements fn's in this header file
 
 /* Define FrameJob class implementation */
 FrameJob::FrameJob(const char* _job_name, bool shareable_flag)
-	:  job_name(_job_name), shareable(shareable_flag), wc_exec_time(-1),
-	wc_remaining_exec_time(-1) {}
+	:  job_name(_job_name), job_state(_job_name), \
+		shareable(shareable_flag), wc_exec_time(-1),
+	wc_remaining_exec_time(-1) {
+}
 
 FrameJob::~FrameJob() {}
 // Return expected execution time for thread using FrameJob's job_state
@@ -35,16 +38,13 @@ void FrameJob::set_wc_remaining_exec_time(int64_t rem_exec_time) {
 }
 int FrameJob::prepare_job(pid_t tid, int64_t slacktime, bool first_flag) {
 	int res = job_state.acquire_gpu(tid, slacktime, first_flag, shareable);
-	if (res==0) {
-		job_state.start_timer();
-	} else {
+	if (res < 0) {
 		fprintf(stderr, "Could not prepare job (%s)!\n", job_name.c_str());
 	}
 	return res;
 }
 int FrameJob::release_job(pid_t tid) {
 	int res = job_state.release_gpu(tid);
-	job_state.end_timer();
 	return res;
 }
 
@@ -127,7 +127,7 @@ int FrameController::register_frame_job(const char *frame_job_name, bool shareab
 	// Unlocks on destruction of lck
 }
 int FrameController::unregister_frame_job(int job_id) {
-	if (job_id < 0 || job_id > frame_jobs.size()-1) {
+	if (job_id < 0 || job_id > (long int)frame_jobs.size()-1) {
 		return -1;
 	}
 	// Use unique_lock to manage ctrl_lock
@@ -146,7 +146,7 @@ void FrameController::frame_start() {
 	std::chrono::system_clock::time_point now_tp = std::chrono::high_resolution_clock::now();
 	std::chrono::microseconds us_now = std::chrono::duration_cast<std::chrono::microseconds>(now_tp.time_since_epoch());
 
-	fprintf(stderr, "Frame start time: %ld us", us_now.count());
+	fprintf(stderr, "Frame start time: %ld us\n", us_now.count());
 	frame_start_us = us_now.count();	
 	frame_deadline_us = (us_now + desired_frame_drn_us).count();
 }
@@ -157,8 +157,8 @@ void FrameController::frame_end() {
 	std::chrono::microseconds frame_drn_us(us_now.count() - frame_start_us);
 
 	int64_t frame_us = frame_drn_us.count();
-	double real_fps = 1.0 / double(frame_drn_us.count());
-	fprintf(stderr, "Frame deadline time: %ld us, frame duration: %ld us, frame FPS %f\n",
+	double real_fps = 1.0 / (double)(frame_us / MICROS_PER_SECOND);
+	fprintf(stderr, "Frame deadline time: %ld us, frame duration: %ld us, frame FPS %lf\n",
 			frame_deadline_us, frame_us, real_fps);
 
 	// Every sampling period, sample the wc execution metrics
@@ -167,15 +167,15 @@ void FrameController::frame_end() {
 		std::unique_lock<std::mutex> lck;
 		lck = std::unique_lock<std::mutex>(ctrl_lock); // Locks on construction
 
-		// Loop over all FrameJobs to udpate_wc_exec_time() for each
-		for (int i=0; i<frame_jobs.size(); i++) {
-			FrameJob *fji = frame_jobs[i];
+		// Loop over all FrameJobs to update () for each
+		for (int i=0; i< (long int)frame_jobs.size(); i++) {
+			FrameJob *fji = frame_jobs[i].get();
 			fji->update_wc_exec_time();
 		}
 		// Looping from end of frame-jobs, update remaining exec time for each
 		int64_t cum_wc_remaining_exec_time = 0;
 		for (int j=frame_jobs.size()-1; j>=0; j--) {
-			FrameJob *fjj = frame_jobs[j];
+			FrameJob *fjj = frame_jobs[j].get();
 			fjj->wc_remaining_exec_time = cum_wc_remaining_exec_time;
 			cum_wc_remaining_exec_time += fjj->wc_exec_time;
 		}
@@ -183,13 +183,13 @@ void FrameController::frame_end() {
 	runcount++;
 }
 int FrameController::prepare_job_by_id(int job_id, pid_t tid) {
-	if (job_id < 0 || job_id >= frame_jobs.size()) {
+	if (job_id < 0 || job_id >= (long int)frame_jobs.size()) {
 		return -1;
 	}
 	// Retrieve frame_job
 	std::shared_ptr<FrameJob> fj = frame_jobs[job_id];
-	int64_t slacktime;
-	bool first_flag;
+	int64_t slacktime = 0;
+	bool first_flag = true;
 	/*
 	 * Compute slacktime relative to absolute deadline,
 	 * return -3 (dropping frame error) if slacktime is negative
@@ -203,9 +203,10 @@ int FrameController::prepare_job_by_id(int job_id, pid_t tid) {
 	if (res < 0) {
 		return -2;
 	}
+	return 0;
 }
 int FrameController::release_job_by_id(int job_id, pid_t tid) {
-	if (job_id < 0 || job_id >= frame_jobs.size()) {
+	if (job_id < 0 || job_id >= (long int)frame_jobs.size()) {
 		return -1;
 	}
 	// Retrieve frame_job
@@ -221,8 +222,8 @@ int FrameController::release_job_by_id(int job_id, pid_t tid) {
 * Returns -1 on error, undefined values for input pointers
 */
 int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id, 
-						int64_t *slacktime_p, bool *initialize_flag_p) {
-	if (job_id < 0 || job_id >= frame_jobs.size()) {
+						int64_t *slacktime_p, bool *no_slacktime_p) {
+	if (job_id < 0 || job_id >= (long int)frame_jobs.size()) {
 		return -1;
 	}
 	// Use unique_lock to manage ctrl_lock
@@ -234,7 +235,7 @@ int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id,
 	int64_t exp_exec_time_us = running_fj->get_expected_exec_time_for_tid(tid);
 	int64_t wc_remaining_exec_time_us = running_fj->wc_remaining_exec_time;
 	if (exp_exec_time_us < 0 || wc_remaining_exec_time_us < 0) {
-		*initialize_flag_p = false;
+		*no_slacktime_p = true;
 		return -1;
 	}
 
@@ -245,7 +246,7 @@ int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id,
 	// Compute slacktime relative to frame_deadline and remaining frame exec time
 	*slacktime_p = (frame_deadline_us - t_us) - \
 					   (exp_exec_time_us + wc_remaining_exec_time_us);
-	*initialize_flag_p = true;
+	*no_slacktime_p = false;
 	return 0;
 }
 

@@ -9,8 +9,10 @@ LIBS=-lGL -lGLEW -lGLU -lGLEW -lglfw -lglut -lopencv_shape -lopencv_stitching -l
 #-lnvidia-ml -lGLESv2
 
 # Tagging
-INCLUDES_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware_iljoo/include
-LIB_PATH_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware_iljoo/lib
+CPP_FLAGS=-std=c++11
+MIDFLAGS=-Wall -g -Wl,--no-as-needed
+INCLUDES_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware_decorator/include
+LIB_PATH_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware_decorator/lib
 TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lpytag -lpthread -lrt
 
 .PHONY = clean
@@ -19,7 +21,7 @@ TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lpytag -lpthread -lrt
 	$(CC) -c -o $@ $< $(CFLAGS) -I$(INCLUDES_TAG) $(TAG_LDFLAGS)
 
 $(TARGET): $(OBJ)
-	g++ -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS) -I$(INCLUDES_TAG) $(TAG_LDFLAGS)
+	g++ -o $@ $^ $(CFLAGS) $(CPP_FLAGS) $(MIDFLAGS) $(LDFLAGS) $(LIBS) -I$(INCLUDES_TAG) $(TAG_LDFLAGS)
 	-rm *.o
 
 clean:

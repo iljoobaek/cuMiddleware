@@ -40,8 +40,10 @@ using namespace glm;
 #include "TimeLog.hpp"
 
 // Tagging
-#include "mid_structs.h" // global_jobs_t, job_t
-#include "tag_gpu.h"	// tag_begin, tag_end
+#include <sys/types.h> // pid_t
+#include "tag_state.h" // gettid()
+#include "tag_dec.h" // frame_job_decorator
+#include "tag_gpu.h"
 
 //char       * gVideoCommon = "highway.mp4";
 string gVideoCommon = "highway.mp4";
@@ -403,10 +405,25 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 	GLuint texture;
 //	int startX, startY, sizeX, sizeY;
 
+    // tagging - get pid, tid
+    pid_t pid = getpid();
+    pid_t tid = gettid();
+
+    // Tagging begin ///////////////////////////////////////////////////////////////////
+    const char *task_1_name = "glGenTextures";
+    tag_job_begin(pid, tid, task_1_name, 14L, false, true, 0);
+
 	glGenTextures(1,&texture);
 	glBindTexture(GL_TEXTURE_2D,texture);
+    // Tag_end /////////////////////////////////////////////////////////////////////////
+    tag_job_end(pid, tid, task_1_name);
 
 	cvFlip(image, NULL, -1);
+
+
+    // Tagging begin ///////////////////////////////////////////////////////////////////
+    const char *task_2_name = "glTexImage2D";
+    tag_job_begin(pid, tid, task_2_name, 14L, false, true, 0);
 
 	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
 
@@ -417,6 +434,12 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    // Tag_end /////////////////////////////////////////////////////////////////////////
+    tag_job_end(pid, tid, task_2_name);
+
+    // Tagging begin ///////////////////////////////////////////////////////////////////
+    const char *task_3_name = "glGenerateMipmap";
+    tag_job_begin(pid, tid, task_3_name, 14L, false, true, 0);
 
 	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
 
@@ -424,6 +447,9 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+
+    // Tag_end /////////////////////////////////////////////////////////////////////////
+    tag_job_end(pid, tid, task_3_name);
 
 	return texture;
 }
@@ -809,6 +835,7 @@ void WriteGpuLog()
 //	gGpuQuery->ClearAccountingPids();
 }
 
+
 int main(int argc, char** argv)
 {
 	if (InitializeGpuLog() < 0)
@@ -866,6 +893,10 @@ int main(int argc, char** argv)
 
 	timeLog.Initialize(glfwGetTime());
 
+    // tagging - get pid, tid
+    pid_t pid = getpid();
+    pid_t tid = gettid();
+
     // main loop
     do{
 
@@ -873,9 +904,6 @@ int main(int argc, char** argv)
 		timeLog.CheckFrame10();
 		timeLog.CheckNBFrame(glfwGetTime());
 
-        // Tagging begin ///////////////////////////////////////////////////////////////////
-        const char *task_1_name = "opengl_get_image";
-        tag_begin(2, task_1_name, 0L, 0L, 0L, 0.0, 0.0, 0.0, 0, 0);
 
 		WriteGpuLog();
 		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Frame End, Frame Start)
@@ -891,13 +919,11 @@ int main(int argc, char** argv)
 
 		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "OpenCVEnd", 4);	// Diff(Frame Start, OpenCV call to make texture)
 
-        // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_end(2, task_1_name);
 
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_2_name = "opengl_draw";
-        tag_begin(2, task_2_name, 0L, 0L, 0L, 0.0, 0.0, 0.0, 0, 0);
+        tag_job_begin(pid, tid, task_2_name, 14L, false, true, 0);
 
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -930,12 +956,12 @@ int main(int argc, char** argv)
         glDisable(GL_CULL_FACE);
 
         // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_end(2, task_2_name);
+        tag_job_end(pid, tid, task_2_name);
 
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_3_name = "opengl_glBegin";
-        tag_begin(2, task_3_name, 0L, 0L, 0L, 0.0, 0.0, 0.0, 0, 0);
+        tag_job_begin(pid, tid, task_3_name, 14L, false, true, 0);
 
 		WriteGpuLog();
 		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glBegin", 4);	// Diff(draw wheels, glBegin)
@@ -954,12 +980,12 @@ int main(int argc, char** argv)
 		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glEnd", 4);  	// Diff(glBegin, glEnd)
 
         // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_end(2, task_3_name);
+        tag_job_end(pid, tid, task_3_name);
 
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_4_name = "opengl_swapBuffer";
-        tag_begin(2, task_4_name, 0L, 0L, 0L, 0.0, 0.0, 0.0, 0, 0);
+        tag_job_begin(pid, tid, task_4_name, 14L, false, true, 0);
 
         glMatrixMode(GL_PROJECTION);
         glMatrixMode(GL_MODELVIEW);
@@ -982,7 +1008,7 @@ int main(int argc, char** argv)
 		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "End", 4);	// Diff(glSwapBuffers, Frame End)
 
         // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_end(2, task_4_name);
+        tag_job_end(pid, tid, task_4_name);
 
 		timeLog.CheckFrameEndTime();
 

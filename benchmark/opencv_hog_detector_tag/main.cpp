@@ -17,8 +17,10 @@
 #include <unistd.h>
 
 // Tagging
-#include "mid_structs.h" // global_jobs_t, job_t
-#include "tag_gpu.h"	// tag_begin, tag_end
+#include <sys/types.h> // pid_t
+#include "tag_state.h" // gettid()
+#include "tag_dec.h" // frame_job_decorator
+#include "tag_gpu.h"
 
 using namespace cv;
 using namespace std;
@@ -59,6 +61,10 @@ int main(int argc, char** argv)
     max_time = 0;
     clock_gettime(CLOCK_MONOTONIC, &tpstart);
     int frame_id = 0;
+
+    // tagging - get pid, tid
+    pid_t pid = getpid();
+	pid_t tid = gettid();
 
     while(true)
     {
@@ -105,11 +111,12 @@ int main(int argc, char** argv)
 		for(int layer=0; layer<20; layer++) {
 
             // Tagging begin ///////////////////////////////////////////////////////////////////
-            const char *task_name = "opencv_hog_cal_server";
-            //if(layer < 10)
-          	tag_begin(1, task_name, 0L, 0L, 0L, 0.0, 0.0, 0.0, 0, 0);
-            //else
-            //    tag_begin(1, task_name, 1000, 1000, 1000, 0.0, 0.0, 0.0, 0, 0);
+            const char *job_name = "opencv_hog_cal_server";
+            int protect_layer = 10;
+            if(layer%protect_layer == 0) {
+                //printf("tag_begin %s %i\n", task_name, layer);
+                tag_job_begin(pid, tid, job_name, 14L, false, true, 0);
+            }
 
             // copy image from cpu to gpu
             src_gpu.upload(image_roi);
@@ -131,8 +138,11 @@ int main(int argc, char** argv)
             mono_gpu.release();
             gpu_hog_descriptor.release();
 
-            // Tag_end /////////////////////////////////////////////////////////////////////////
-          	tag_end(1, task_name);
+            if((layer+1)%protect_layer == 0) {
+                //printf("tag_end %s %i\n", task_name, layer);
+                // Tag_end /////////////////////////////////////////////////////////////////////////
+              	tag_job_end(pid, tid, job_name);
+            }
 
 		}
 

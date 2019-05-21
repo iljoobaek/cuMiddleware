@@ -46,6 +46,60 @@ int frame_ctr;
 float fps;
 float total_nsec;
 
+//int hog_Width = 400, hog_Height = 112;
+//int hog_Width = 640, hog_Height = 360; // GTX 1070 - 4~5% utility
+int hog_Width = 1280, hog_Height = 720; // GTX 1070 - 19~22% utility
+
+int hog_calculator(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // tagging - get pid, tid
+    pid_t pid = getpid();
+	pid_t tid = gettid();
+
+
+    for(int layer=0; layer<20; layer++) {
+
+        // Tagging begin ///////////////////////////////////////////////////////////////////
+        const char *job_name = "opencv_hog_cal_server";
+        int protect_layer = 10;
+        if(layer%protect_layer == 0) {
+            //printf("tag_begin %s %i\n", task_name, layer);
+            //tag_job_begin(pid, tid, job_name, 14L, false, true, 1UL);
+        }
+
+        // copy image from cpu to gpu
+        src_gpu.upload(image_roi);
+
+        // color conversion
+        cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+        // hog calculation
+        gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+        // copy result from gpu to cpu
+        Mat cpu_hog_descriptor;
+        gpu_hog_descriptor.download(cpu_hog_descriptor);
+        //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+        //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+        // release gpu memory
+        src_gpu.release();
+        mono_gpu.release();
+        gpu_hog_descriptor.release();
+
+        if((layer+1)%protect_layer == 0) {
+            //printf("tag_end %s %i\n", task_name, layer);
+            // Tag_end /////////////////////////////////////////////////////////////////////////
+            //tag_job_end(pid, tid, job_name);
+        }
+    }
+    return 1;
+}
 
 int main(int argc, char** argv)
 {
@@ -63,26 +117,18 @@ int main(int argc, char** argv)
     clock_gettime(CLOCK_MONOTONIC, &tpstart);
     int frame_id = 0;
 
-    // tagging - get pid, tid
-    pid_t pid = getpid();
-	pid_t tid = gettid();
 
     // tagging - frame control
     const char *frame_name = "opencv_hog_cal";
-	FrameController fc(frame_name, 5);
+	FrameController fc(frame_name, 21);
+
+    // tagging - decorate work functions
+	auto tagged_work1_ptr = frame_job_decorator(hog_calculator, &fc, "hog_calculator", true);
 
     while(true)
     {
         // tagging - frame control
         fc.frame_start();
-        try {
-			fprintf(stdout, "opencv: tag_beginning() %d\n", frame_id);
-
-		} catch (DroppedFrameException& e) {
-			// Can continue in the while loop, just skipping this frame due to
-			// recoverable abort of frame-jobs.
-			fprintf(stderr, "opencv: had to drop a frame! Continuing...\n");
-		}
 
         /* ***** START TIMING ***** */
         clock_gettime(CLOCK_MONOTONIC, &tpstart);
@@ -110,56 +156,22 @@ int main(int argc, char** argv)
         if(cur_img.empty())
             break;
 
-        // Set ROI
-        //int hog_Width = 400, hog_Height = 112;
-        //int hog_Width = 640, hog_Height = 360; // GTX 1070 - 4~5% utility
-        int hog_Width = 1280, hog_Height = 720; // GTX 1070 - 19~22% utility
+
         Rect roi = Rect(0, 0, hog_Width, hog_Height); // x, y, width, height
         Mat image_roi = cur_img(roi);
 
         /**********************************************************************/
         #ifdef USE_GPU_HOG
-        // GPU-related initialization
-        cuda::GpuMat src_gpu, mono_gpu;
-        cuda::GpuMat gpu_hog_descriptor;
-        cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
 
-		for(int layer=0; layer<20; layer++) {
+        try {
+			fprintf(stdout, "opencv: tag_beginning() %d\n", frame_id);
+            //hog_calculator(image_roi);
+            (*tagged_work1_ptr)(image_roi);
 
-            // Tagging begin ///////////////////////////////////////////////////////////////////
-            const char *job_name = "opencv_hog_cal_server";
-            int protect_layer = 10;
-            if(layer%protect_layer == 0) {
-                //printf("tag_begin %s %i\n", task_name, layer);
-                tag_job_begin(pid, tid, job_name, 14L, false, true, 0);
-            }
-
-            // copy image from cpu to gpu
-            src_gpu.upload(image_roi);
-
-            // color conversion
-            cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
-
-            // hog calculation
-            gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
-
-            // copy result from gpu to cpu
-            Mat cpu_hog_descriptor;
-            gpu_hog_descriptor.download(cpu_hog_descriptor);
-            //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
-            //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
-
-			// release gpu memory
-            src_gpu.release();
-            mono_gpu.release();
-            gpu_hog_descriptor.release();
-
-            if((layer+1)%protect_layer == 0) {
-                //printf("tag_end %s %i\n", task_name, layer);
-                // Tag_end /////////////////////////////////////////////////////////////////////////
-              	tag_job_end(pid, tid, job_name);
-            }
-
+		} catch (DroppedFrameException& e) {
+			// Can continue in the while loop, just skipping this frame due to
+			// recoverable abort of frame-jobs.
+			fprintf(stderr, "opencv: had to drop a frame! Continuing...\n");
 		}
 
         #else /*USE_GPU_HOG*/

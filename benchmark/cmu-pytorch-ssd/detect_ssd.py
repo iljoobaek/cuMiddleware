@@ -10,6 +10,7 @@ import sys
 import os
 import flops_counter
 import time
+import argparse
 
 from vision.nn_profile import Profiler
 
@@ -17,7 +18,6 @@ from vision.nn_profile import Profiler
 PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
 TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
 
-import argparse
 parse = argparse.ArgumentParser("Run an SSD with or without tagging")
 parse.add_argument("--net", dest="net", default='mb1-ssd', choices=['mb1-ssd', 'vgg16-ssd'])
 parse.add_argument("--path", dest="model_path", default='models/mobilenet-v1-ssd-mp-0_675.pth')
@@ -100,9 +100,8 @@ tot_fps = 0.
 tenth_flag = 10
 autograd_prof_flag = False
 
-for image_path in TEST_IMAGE_PATHS:
-    if tagging_enabled:
-        fc.frame_start()
+def frame_work(image_path):
+    global timer, tot_fps, tenth_flag, autograd_prof_flag
     tenth_flag -= 1 
     orig_image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     image = orig_image.copy()
@@ -134,11 +133,17 @@ for image_path in TEST_IMAGE_PATHS:
                     1,  # font scale
                     (255, 0, 255),
                     2)  # line type
+
+for image_path in TEST_IMAGE_PATHS:
+    if tagging_enabled:
+        with tag_layer_fps.FrameController.frame_context(fc) as frame:
+            frame_work(image_path)
+    else:
+        frame_work(image_path)
    # cv2.imshow('SSD (PyTorch) annotated', orig_image)
    # if cv2.waitKey(1) & 0xFF == ord('q'):
    #     break
-    if tagging_enabled: # TODO: change to a with clause
-        fc.frame_end()
+
 cv2.destroyAllWindows()
 print('-'*60+'\nAverage FPS:', tot_fps / len(TEST_IMAGE_PATHS))
 if tenth_flag < 0 and enable_prof:

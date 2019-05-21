@@ -75,6 +75,28 @@ class FrameController(object):
         tid = c_int(tid)
         return libpytag.FrameController_release_job_by_id(self.fc, fj_id, tid)
 
+    @classmethod
+    def frame_context(cls, fc):
+        '''
+        Nicer syntax for with clauses around already-init FC object
+        example:
+
+        fc = FrameController("Frame1", des_fps)
+        ...
+        for im in images:
+            with FrameController.frame_context(fc) as frame:
+                # Do decorated and non-wrapped frame work on im
+        '''
+        return fc
+        
+    def __enter__(self):
+        self.frame_start()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.frame_end()
+
+
 def tag_fn(fn, fc_obj, job_name, is_shareable):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):

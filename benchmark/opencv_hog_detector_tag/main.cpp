@@ -18,6 +18,7 @@
 
 // Tagging
 #include <sys/types.h> // pid_t
+#include "tag_frame.h" // FrameController
 #include "tag_state.h" // gettid()
 #include "tag_dec.h" // frame_job_decorator
 #include "tag_gpu.h"
@@ -66,8 +67,23 @@ int main(int argc, char** argv)
     pid_t pid = getpid();
 	pid_t tid = gettid();
 
+    // tagging - frame control
+    const char *frame_name = "opencv_hog_cal";
+	FrameController fc(frame_name, 5);
+
     while(true)
     {
+        // tagging - frame control
+        fc.frame_start();
+        try {
+			fprintf(stdout, "opencv: tag_beginning() %d\n", frame_id);
+
+		} catch (DroppedFrameException& e) {
+			// Can continue in the while loop, just skipping this frame due to
+			// recoverable abort of frame-jobs.
+			fprintf(stderr, "opencv: had to drop a frame! Continuing...\n");
+		}
+
         /* ***** START TIMING ***** */
         clock_gettime(CLOCK_MONOTONIC, &tpstart);
         //printf("%ld %ld\n", tpstart.tv_sec, tpstart.tv_nsec);
@@ -177,6 +193,8 @@ int main(int argc, char** argv)
             sum_time += total_nsec;
             num_f++;
         }
+        // tagging - frame control
+        fc.frame_end();
         /* ***** END TIMING ***** */
 
         char cKey = waitKey(5);

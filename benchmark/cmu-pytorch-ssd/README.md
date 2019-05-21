@@ -1,10 +1,15 @@
-Usage: python detect_ssd.py <net type>  <model path> <label path>
+usage: Run an SSD with or without tagging [-h] [--net {mb1-ssd,vgg16-ssd}]
+                                          [--path MODEL_PATH]
+                                          [--label LABEL_PATH] [--fps FPS]
 
-For net type: mb1-ssd
-For model path: models/mobilenet-v1-ssd-mp-0_675.pth
-For label path: models/voc-model-labels.txt
-
+optional arguments:
+  -h, --help            show this help message and exit
+  --net {mb1-ssd,vgg16-ssd}
+  --path MODEL_PATH
+  --label LABEL_PATH
+  --fps FPS             Enable fps control with tagging at desired fps
+                        [default -1, disabled]
 How I run it:
 ```
-python detect_ssd.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
+LD_LIBRARY_PATH=../../lib python detect_ssd.py --fps 5.0
 ```

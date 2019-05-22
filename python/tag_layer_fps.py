@@ -90,12 +90,20 @@ class FrameController(object):
         return fc
         
     def __enter__(self):
+        # On entering context, mark the start of the frame
         self.frame_start()
         return self
 
     def __exit__(self, type, value, traceback):
+        # On leaving context, mark the end of the frame
         self.frame_end()
-
+        if traceback is not None:
+            # Exception occurred, swallow only the DroppedFrameException
+            if type == DroppedFrameException:
+                print("FrameController context caught a DroppedFrameException, skipping remaining frame's work")
+                return True
+            else:
+                return False 
 
 def tag_fn(fn, fc_obj, job_name, is_shareable):
     @functools.wraps(fn)

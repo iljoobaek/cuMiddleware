@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 	pid_t tid = gettid();
 	const char *frame_name = "opencv_get_image_DEC";
 
-	FrameController fc(frame_name, 0.2);
+	FrameController fc(frame_name, 0.2, false);
 
 	// decorate work functions
 	auto tagged_work1_ptr = frame_job_decorator(work1, &fc, "work1", true);

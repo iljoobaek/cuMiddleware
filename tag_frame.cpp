@@ -97,8 +97,9 @@ int FrameJob_release_job(void *fj_obj, pid_t tid) {
  * sent to server to assist in job prioritization.
  * Object interface is thread-safe.
  */
-FrameController::FrameController(const char *_frame_task_name, float _desired_fps) \
-	: task_name(_frame_task_name), desired_fps(_desired_fps),
+FrameController::FrameController(const char *_frame_task_name, float _desired_fps,
+		bool _allow_frame_drop) \
+	: task_name(_frame_task_name), desired_fps(_desired_fps), allow_frame_drop(_allow_frame_drop),
 	frame_start_us(0L), frame_deadline_us(0L), runcount(0) {
 	if (desired_fps <= 0.0) {
 		throw std::invalid_argument("Bad desired FPS, must be non-negative!");
@@ -192,10 +193,11 @@ int FrameController::prepare_job_by_id(int job_id, pid_t tid) {
 	bool first_flag = true;
 	/*
 	 * Compute slacktime relative to absolute deadline,
-	 * return -3 (dropping frame error) if slacktime is negative
+	 * return -3 (dropping frame error) if allowed to skip frame and
+	 * slacktime is negative 
 	 */
 	compute_frame_job_slacktime(tid, job_id, &slacktime, &first_flag);
-	if (slacktime < 0) {
+	if (allow_frame_drop && slacktime < 0) {
 		return -3;
 	}
 	// Prepare job with slacktime
@@ -255,9 +257,10 @@ int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id,
 #ifdef __cplusplus
 extern "C" {
 #endif 
-void *CreateFrameControllerObj(const char *frame_task_name, float desired_fps) {
+void *CreateFrameControllerObj(const char *frame_task_name, float desired_fps,
+		bool allow_frame_drop) {
 	return reinterpret_cast<void *>(
-				new FrameController(frame_task_name, desired_fps));
+				new FrameController(frame_task_name, desired_fps, allow_frame_drop));
 }
 void DestroyFrameControllerObj(void *fc_obj) {
 	delete reinterpret_cast<FrameController *>(fc_obj);

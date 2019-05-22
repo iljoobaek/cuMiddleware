@@ -8,7 +8,7 @@ libpytag = cdll.LoadLibrary("libpytag.so")
 
 # Modify the res and argtypes of FrameController interface
 libpytag.CreateFrameControllerObj.restype = c_void_p
-libpytag.CreateFrameControllerObj.argtypes= [c_char_p, c_float]
+libpytag.CreateFrameControllerObj.argtypes= [c_char_p, c_float, c_bool]
 
 libpytag.DestroyFrameControllerObj.restype = None
 libpytag.DestroyFrameControllerObj.argtypes = [c_void_p]
@@ -42,10 +42,12 @@ class DroppedFrameException(Exception):
     pass
 
 class FrameController(object):
-    def __init__(self, frame_name, desired_fps):
+    def __init__(self, frame_name, desired_fps, allow_frame_drop):
         frame_name = c_char_p(frame_name.encode('utf8'))
         desired_fps = c_float(desired_fps)
-        self.fc = c_void_p(libpytag.CreateFrameControllerObj(frame_name, desired_fps))
+        allow_frame_drop = c_bool(allow_frame_drop)
+        self.fc = c_void_p(libpytag.CreateFrameControllerObj(frame_name, desired_fps,
+                                                            allow_frame_drop))
 
     def __del__(self):
         libpytag.DestroyFrameControllerObj(self.fc)
@@ -108,7 +110,6 @@ class FrameController(object):
 def tag_fn(fn, fc_obj, job_name, is_shareable):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
-        print("Calling the decorated function (%s) with jobname: %s" % (fn.__name__, job_name))
         # Using calling thread's tid, prepare wrapped FrameJob
         tid = gettid()
         prep = wrapper.fc.prepare_job_by_id(wrapper.job_id, tid)
@@ -125,7 +126,6 @@ def tag_fn(fn, fc_obj, job_name, is_shareable):
                 raise DroppedFrameException("Skipping remaining jobs for this frame!")
 
         # Do work
-        print("Args: " + str(args))
         res = wrapper.fn(*args, **kwargs)
 
         # Lastly, release job resources before returning
@@ -170,7 +170,7 @@ def tag_pt_module_layers_at_depth(m_obj, fc, is_shareable, tgt_depth=-1):
 
 
 if __name__ == "__main__":
-    fc = FrameController("dummy", 25.0)
+    fc = FrameController("dummy", 25.0, False)
     fc.frame_start()
     fc.frame_end()
 

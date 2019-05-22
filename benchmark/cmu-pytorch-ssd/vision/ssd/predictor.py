@@ -40,7 +40,6 @@ class Predictor:
             scores, boxes = self.net.forward(images)
             inf_time = self.timer.end()
             fps = 1.0/inf_time
-            print("Inference time:", inf_time, "\n\tFPS:", fps)
         boxes = boxes[0]
         scores = scores[0]
         if not prob_threshold:

@@ -78,13 +78,19 @@ struct FrameController {
 	std::deque<std::shared_ptr<FrameJob> > frame_jobs;
 	std::string task_name;
 	float desired_fps;
+	bool allow_frame_drop;
 	std::chrono::microseconds desired_frame_drn_us;
 	long int frame_start_us;			// Most recent frame start time (us)
 	long int frame_deadline_us;			// Most recent frame deadline (us)
 	unsigned int runcount;
 	std::mutex ctrl_lock;
 
-	FrameController(const char *frame_task_name, float desired_fps);
+	/* 
+	 * Constructor:
+	 * Designates FrameController name, target fps, and flag for whether to throw DroppedFrameException
+	 * when slacktimes become negative.
+	 */
+	FrameController(const char *frame_task_name, float desired_fps, bool allow_frame_drop);
 	~FrameController();
 
 	/* Registration calls to characterize work within a "frame" of repetitive work*/
@@ -120,7 +126,7 @@ struct FrameController {
 #ifdef __cplusplus
 extern "C" {
 #endif 
-void *CreateFrameControllerObj(const char *frame_task_name, float desired_fps);
+void *CreateFrameControllerObj(const char *frame_task_name, float desired_fps, bool allow_frame_drop);
 void DestroyFrameControllerObj(void *fc_obj);
 int FrameController_register_frame_job(void *fc_obj, const char *fj_name, bool shareable);
 int FrameController_unregister_frame_job(void *fc_obj, int job_id);

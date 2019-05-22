@@ -30,7 +30,7 @@ model_path = args.model_path
 label_path = args.label_path
 fps = args.fps
 tagging_enabled = False
-if str(fps) == -1:
+if str(fps) == "-1":
     print("Tagging is NOT enabled")
     time.sleep(1)
 else:
@@ -87,7 +87,8 @@ if tagging_enabled:
     sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
     import tag_layer_fps
     net = predictor.net
-    fc = tag_layer_fps.FrameController("Pytorch SSD", fps)
+    allow_frame_drop = False
+    fc = tag_layer_fps.FrameController("Pytorch SSD", fps, allow_frame_drop)
     tag_layer_fps.tag_pt_module_layers_at_depth(net, fc, True, 0)
 ######
 
@@ -102,10 +103,10 @@ autograd_prof_flag = False
 
 def frame_work(image_path):
     global timer, tot_fps, tenth_flag, autograd_prof_flag
+    timer.start()
     tenth_flag -= 1 
     orig_image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     image = orig_image.copy()
-    timer.start()
     if tenth_flag == 0 and enable_prof:
         if autograd_prof_flag:
             with torch.autograd.profiler.profile(use_cuda=True) as prof:
@@ -119,20 +120,21 @@ def frame_work(image_path):
 
     boxes, labels, probs, fps = predictor.predict(image, 10, 0.4, ret_fps=True)
     # Keep track of average FPS
-    tot_fps += fps
     interval = timer.end()
-    print('Time: {:.2f}s, Detect Objects: {:d}.'.format(interval, labels.size(0)))
-    for i in range(boxes.size(0)):
-        box = boxes[i, :]
-        label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
-        cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
+    frame_fps = 1.0 / interval;
+    tot_fps += frame_fps
+    print('Time: {:.8f}s, FPS: {:.8f}s, Detect Objects: {:d}.'.format(interval, frame_fps, labels.size(0)))
+    #for i in range(boxes.size(0)):
+    #    box = boxes[i, :]
+    #    label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
+    #    cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
 
-        cv2.putText(orig_image, label,
-                    (box[0]+20, box[1]+40),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1,  # font scale
-                    (255, 0, 255),
-                    2)  # line type
+    #    cv2.putText(orig_image, label,
+    #                (box[0]+20, box[1]+40),
+    #                cv2.FONT_HERSHEY_SIMPLEX,
+    #                1,  # font scale
+    #                (255, 0, 255),
+    #                2)  # line type
 
 for image_path in TEST_IMAGE_PATHS:
     if tagging_enabled:

@@ -122,6 +122,10 @@ int job_release_gpu(job_t *comp_job) {
 	// Actually release memory and reduce running_pid_jobs
 	gpu_memory_available += acquired_mem;
 	running_pid_jobs[comp_job->pid]--;
+	// Remove pid from running_pid_jobs if its tid count is 0
+	if (running_pid_jobs[comp_job->pid] == 0) {
+		running_pid_jobs.erase(it);
+	}
 	return 0;
 }
 

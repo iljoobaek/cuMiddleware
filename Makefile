@@ -22,7 +22,7 @@ common.o: common.c
 mid_queue.o: mid_queue.c
 	$(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o mid_queue.o mid_queue.c -c -fPIC
 
-tag_lib.o: tag_lib.cpp 
+tag_lib.o: tag_lib.cpp
 	$(CXX) $(INCL_FLAGS) $(CPP_FLAGS) $(MIDFLAGS) -o tag_lib.o tag_lib.cpp -c -fPIC
 
 libmid.so: mid_queue.o common.o
@@ -34,7 +34,7 @@ tag_state.o: tag_state.cpp
 tag_frame.o: tag_frame.cpp
 	$(CXX) $(INCL_FLAGS) $(CPP_FLAGS) $(MIDFLAGS) -o tag_frame.o tag_frame.cpp -c -fPIC
 
-libpytag.so: tag_state.o tag_lib.o tag_frame.o libmid.so 
+libpytag.so: tag_state.o tag_lib.o tag_frame.o libmid.so
 	$(EDIT_LD_PATH) $(CXX) -shared -o lib/libpytag.so tag_state.o tag_lib.o tag_frame.o $(LOAD_MID)
 
 test_mid.o: tests/test_mid.c tag_lib.o libmid.so
@@ -49,7 +49,11 @@ test_app2: app2.c tag_lib.o mid_queue.o common.o
 test_app3: app3.cpp tag_lib.o mid_queue.o common.o tag_frame.o tag_state.o
 	$(EDIT_LD_PATH) $(CXX) $(INCL_FLAGS) $(CPP_FLAGS) $(MIDFLAGS) -o app3.o app3.cpp tag_lib.o mid_queue.o common.o tag_frame.o tag_state.o -lrt -lpthread
 
-test_app: test_app1 test_app2 test_app3
+test_app4: app4.cpp tag_lib.o mid_queue.o common.o tag_frame.o tag_state.o
+		$(EDIT_LD_PATH) $(CXX) $(INCL_FLAGS) $(CPP_FLAGS) $(MIDFLAGS) -o app4.o app4.cpp tag_lib.o mid_queue.o common.o tag_frame.o tag_state.o -lrt -lpthread
+
+
+test_app: test_app1 test_app2 test_app3 test_app4
 
 
 run_test_mid: tests/test_mid.o
@@ -58,7 +62,7 @@ run_test_mid: tests/test_mid.o
 test_tag.o: tests/test_tag.c tag_lib.o libmid.so
 	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tests/test_tag.o tests/test_tag.c tag_lib.o $(LOAD_MID)
 
-run_test_tag: test_tag.o 
+run_test_tag: test_tag.o
 	$(EDIT_LD_PATH) ./tests/test_tag.o;
 
 test_tag_dec.o: tests/test_tag_dec.cpp tag_state.o tag_lib.o libmid.so

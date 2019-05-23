@@ -23,9 +23,9 @@ int main(int argc, char **argv) {
 
 	pid_t pid = getpid();
 	pid_t tid = gettid();
-	const char *frame_name = "app3";
+	const char *frame_name = "app4";
 
-	FrameController fc(frame_name, 0.2, false);
+	FrameController fc(frame_name, 0.1, false);
 
 	// decorate work functions
 	auto tagged_work1_ptr = frame_job_decorator(work1, &fc, "work1", false);

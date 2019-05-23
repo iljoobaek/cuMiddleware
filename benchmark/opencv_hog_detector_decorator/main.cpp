@@ -130,9 +130,18 @@ int main(int argc, char** argv)
     clock_gettime(CLOCK_MONOTONIC, &tpstart);
     int frame_id = 0;
 
+    // tagging - decorator
+    const char *frame_name = "opencv_hog_calculator";
+	FrameController fc(frame_name, 50, false);
+
+    // decorate work functions
+	auto tagged_work1_ptr = frame_job_decorator(gpu_hog_calculator_1, &fc, "gpu_hog_calculator_1", true);
+	auto tagged_work2_ptr = frame_job_decorator(gpu_hog_calculator_2, &fc, "gpu_hog_calculator_2", true);
 
     while(true)
     {
+        fc.frame_start();
+
         /* ***** START TIMING ***** */
         clock_gettime(CLOCK_MONOTONIC, &tpstart);
         //printf("%ld %ld\n", tpstart.tv_sec, tpstart.tv_nsec);
@@ -166,29 +175,11 @@ int main(int argc, char** argv)
         /**********************************************************************/
         #ifdef USE_GPU_HOG
 
-        // tagging - get pid, tid
-        pid_t pid = getpid();
-    	pid_t tid = gettid();
+        //gpu_hog_calculator_1(image_roi);
+        //gpu_hog_calculator_2(image_roi);
 
-        // Tagging begin ///////////////////////////////////////////////////////////////////
-        const char *job_1_name = "gpu_hog_calculator_1";
-        tag_job_begin(pid, tid, job_1_name, 14L, false, true, 0);
-
-        gpu_hog_calculator_1(image_roi);
-
-        // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_job_end(pid, tid, job_1_name);
-
-
-
-        // Tagging begin ///////////////////////////////////////////////////////////////////
-        const char *job_2_name = "gpu_hog_calculator_2";
-        tag_job_begin(pid, tid, job_2_name, 14L, false, true, 0);
-
-        gpu_hog_calculator_2(image_roi);
-
-        // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_job_end(pid, tid, job_2_name);
+		(*tagged_work1_ptr)(image_roi);
+		(*tagged_work2_ptr)(image_roi);
 
 
         #else /*USE_GPU_HOG*/
@@ -235,7 +226,10 @@ int main(int argc, char** argv)
                     break;
             }
         }
+
+        fc.frame_end();
     }
+    fc.frame_end();
 
     std::cout << sum_time << " ns \t" << num_f << " frames \t" << sum_time / num_f  << " ns \t" << sum_time / num_f / 1000000 << " ms" << std::endl;
     std::cout << max_time << " ns \t" << max_time / 1000000 << " ms" << std::endl;

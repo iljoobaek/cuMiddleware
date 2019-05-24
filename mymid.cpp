@@ -239,8 +239,7 @@ int trigger_job(job_t *tj) {
 
 	// Set client's execution flag to run
 	tj->client_exec_allowed = true;
-	pthread_cond_signal(&(tj->client_wake));
-	return 0;
+	return pthread_cond_signal(&(tj->client_wake));
 }
 
 int main(int argc, char **argv)
@@ -267,6 +266,12 @@ int main(int argc, char **argv)
 	bool queued_wait_for_complete = false;
 	bool pq_wait_flag = false;
 
+	// In order to maintain a relative ordering of old and new jobs on the pq
+	// (which is ordered by slacktimes, which is relative to an absolute client
+	// frame deadline), we must keep a counter for periods in which the pq is not
+	// empty.
+	int rel_priority_period_count = 0;
+
 	// Global jobs queue has been initialized
 	// Begin waiting for job_shm_names to be enqueued (sample every 250ms)
 	while (continue_flag)
@@ -291,6 +296,12 @@ int main(int argc, char **argv)
 					jobs_queued_first.push(q_job);
 				} else {
 					qtype = "QUEUED_SLACK";
+					if (rel_priority_period_count) {
+						// Locally modify the relative priority of this job
+						// compared to older jobs on the pq
+						fprintf(stderr, "Modifying q_job slacktime: %d -> %d\n", (int)q_job->slacktime, (int)(q_job->slacktime + rel_priority_period_count*SLEEP_MICROSECONDS));
+						q_job->slacktime += rel_priority_period_count*SLEEP_MICROSECONDS;
+					}
 					jobs_queued_pr.push(q_job);
 					// Just updated pq, can try to process next job immediately
 					pq_wait_flag = false;
@@ -386,7 +397,9 @@ int main(int argc, char **argv)
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
-				trigger_job(q_job);
+				if (trigger_job(q_job) < 0) {
+					fprintf(stderr, "\tFailed to wake client!\n");
+				}
 			}
 			// Actually pop job off queue
 			jobs_queued_first.pop();
@@ -396,7 +409,9 @@ int main(int argc, char **argv)
 		 * Lastly, run as many jobs (according to priority) as can fit on GPU.
 		 */
 		if (jobs_queued_pr.size()) {
-			fprintf(stdout, "jobs_queued_pr size %d\n", (int)jobs_queued_pr.size());
+			// Priority queue is not empty, increment the rel_priority_period_count
+			fprintf(stderr, "Jobs queued pr has size %d, rel_p_p_count %d\n", (int)jobs_queued_pr.size(), (int)rel_priority_period_count);
+			rel_priority_period_count++;
 		}
 		while (!pq_wait_flag &&
 				jobs_queued_pr.size()) {
@@ -426,12 +441,18 @@ int main(int argc, char **argv)
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
-				trigger_job(q_job);
+				if (trigger_job(q_job) < 0) {
+					fprintf(stderr, "\tFailed to wake client!\n");
+				}
 			}
 			// Pop job off priority-queue 
 			jobs_queued_pr.pop();
-		}
 
+			if (jobs_queued_pr.size() == 0) {
+				// Reset the relative priority period counter
+				rel_priority_period_count = 0;
+			}
+		}
 		// Sleep before starting loop again
 		usleep(SLEEP_MICROSECONDS);
 	}

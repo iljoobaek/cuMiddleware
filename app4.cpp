@@ -7,15 +7,15 @@
 #include "tag_gpu.h"
 
 // Work functions must NOT be of return-type void
-int work1() {
+int app4_work1() {
 	fprintf(stderr, "Work1\n");
-	sleep(2);
+	usleep(10000);
 	return 0;
 }
 
-int work2() {
+int app4_work2() {
 	fprintf(stderr, "Work2\n");
-	sleep(1);
+	usleep(10000);
 	return 0;
 }
 
@@ -25,12 +25,12 @@ int main(int argc, char **argv) {
 	pid_t tid = gettid();
 	const char *frame_name = "app4";
 
-	FrameController fc(frame_name, 0.1, false);
+	FrameController fc(frame_name, 100, false);
 
 	// decorate work functions
-	auto tagged_work1_ptr = frame_job_decorator(work1, &fc, "work1", false);
-	auto tagged_work2_ptr = frame_job_decorator(work2, &fc, "work2", false);
-	for (int i = 0; i < 10; i++)
+	auto tagged_work1_ptr = frame_job_decorator(app4_work1, &fc, "app4_work1", false);
+	auto tagged_work2_ptr = frame_job_decorator(app4_work2, &fc, "app4_work2", false);
+	for (int i = 0; i < 100; i++)
 	{
 		fc.frame_start();
 		try {

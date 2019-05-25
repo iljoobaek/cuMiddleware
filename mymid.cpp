@@ -25,8 +25,11 @@
 #include "mid_queue.h"
 #include "mid_common.h"
 
-// Only keep last 100 completed jobs
-#define MAX_COMPLETED_QUEUE_SIZE 100
+// Helper define for slacktime threshold check
+#define SLACKTIME_THRESHOLD (5*SLEEP_MICROSECONDS)
+#define CURR_SLACKTIME_PQ_EMPTY_OFFSET (rel_priority_period_count*SLEEP_MICROSECONDS)
+#define WITHIN_SLACKTIME_THRESHOLD(s) \
+	(s - CURR_SLACKTIME_PQ_EMPTY_OFFSET < SLACKTIME_THRESHOLD)
 
 struct CompareJobSlack {
 public:
@@ -56,6 +59,11 @@ static std::vector<job_t*> jobs_executing;
 static std::queue<job_t*> jobs_completed;
 static std::unordered_map<pid_t, int> running_pid_jobs;	// How many jobs per pid concurrently running on GPU
 static int gpu_excl_jobs = 0;	// How many jobs are running on GPU with non-shareable flag
+// In order to maintain a relative ordering of old and new jobs on the pq
+// (which is ordered by slacktimes, which is relative to an absolute client
+// frame deadline), we must keep a counter for periods in which the pq is not
+// empty.
+static int rel_priority_period_count = 0;
 
 
 static int GJ_fd;
@@ -158,6 +166,8 @@ void alloc_gpu_for_job(job_t *j) {
  * 1) Job's memory requirement fits on memory available for GPU
  * AND 
  * 2) job can appropriately share the GPU with other threads or pids
+ * AND
+ * 3) job's slacktime below a threshold relative to server period
  * Returns 0 on success, -1 on wait signal, -2 on abort signal for job
  */
 int job_acquire_gpu(job_t *j) {
@@ -181,6 +191,20 @@ int job_acquire_gpu(job_t *j) {
 		fprintf(stderr, "Job must wait, not enough memory to run yet!\n");
 		return -1;
 	}
+
+	bool should_run_now = false;
+	if (j->first_flag) {
+		should_run_now = true;
+	} else {
+		// Whether job should run now depends on slacktime threshold
+		should_run_now = WITHIN_SLACKTIME_THRESHOLD(j->slacktime);
+	}
+	if (!should_run_now) {
+		// Must wait for slacktime to be within running threshold
+		fprintf(stderr, "Job must wait, slacktime is above running threshold!\n");
+		return -1;
+	}
+
 
 	bool can_run_now = false;
 	if (running_pid_jobs.size() == 0) {
@@ -265,12 +289,6 @@ int main(int argc, char **argv)
 	// GPU is at capacity
 	bool queued_wait_for_complete = false;
 	bool pq_wait_flag = false;
-
-	// In order to maintain a relative ordering of old and new jobs on the pq
-	// (which is ordered by slacktimes, which is relative to an absolute client
-	// frame deadline), we must keep a counter for periods in which the pq is not
-	// empty.
-	int rel_priority_period_count = 0;
 
 	// Global jobs queue has been initialized
 	// Begin waiting for job_shm_names to be enqueued (sample every 250ms)

@@ -30,6 +30,7 @@ void submit_job(global_jobs_t *gj, job_t *new_job, char *job_shm_name){
     memcpy(gj->job_shm_names[gj->total_count], job_shm_name,
 		   JOB_MEM_NAME_MAX_LEN);    
     gj->total_count += 1;
+	fprintf(stderr, "Submitted job (%s), shm_names has size %d\n", job_shm_name, gj->total_count);
 
 	// Lastly, unlock
 	pthread_mutex_unlock(&(gj->requests_q_lock));
@@ -37,7 +38,7 @@ void submit_job(global_jobs_t *gj, job_t *new_job, char *job_shm_name){
 }
 
 // ---------------------------- Server Functions -------------------------------
-/* TODO: Not thread-safe */
+/* Not thread-safe by itself */
 int peek_job_queued_at_i(global_jobs_t *gj, job_t **qd_job, int i)
 {
 	assert(gj != NULL);
@@ -47,5 +48,7 @@ int peek_job_queued_at_i(global_jobs_t *gj, job_t **qd_job, int i)
 	// Grab the name from job_shm_names 
 	char *job_mem_name = gj->job_shm_names[i];
 	
-	return get_shared_job(job_mem_name, qd_job);
+	fprintf(stderr, "Peeking job (shm: %s) queued at i (%d)", job_mem_name, i);
+	int res = get_shared_job(job_mem_name, qd_job);
+	return res;
 }

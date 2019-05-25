@@ -13,7 +13,8 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
-#include <pthread.h> // pthread_mutex_t, pthread_cond_t
+#include <pthread.h> // pthread_mutex_t
+#include <semaphore.h> // sem_t
 #include <time.h> // time_t
 #include <stdint.h> // uint64_t
 #include <string.h> //strcmp
@@ -41,8 +42,7 @@ typedef struct job {
 	enum job_type req_type;			// 'queued' or 'completed'
 	
 	// Client-side/server-side attrs - communication properties
-	pthread_mutex_t own_job;		// mutex protecting job from multi-threaded mods
-	pthread_cond_t client_wake;		// cond_var used to block client until ready
+	sem_t client_wake;				// Semaphore controlling when client can continue within a tag
 	bool client_exec_allowed;		// flag determining whether client should execute when woken
 } job_t;
 

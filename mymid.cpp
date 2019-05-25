@@ -12,6 +12,7 @@
 #include <fcntl.h>              // for O_ constants, such as "O_RDWR"
 #include <signal.h>             // sigint can trigger the clean up process;
 #include <dlfcn.h>                             // dlsym, RTLD_DEFAULT
+#include <semaphore.h>			// sem_t, sem_*()
 
 #include <algorithm>	// std::find
 #include <cassert>		// assert()
@@ -229,8 +230,7 @@ int abort_job(job_t *aj) {
 
 	// Set client's execution flag to abort
 	aj->client_exec_allowed = false;
-	pthread_cond_signal(&(aj->client_wake));
-	return 0;
+	return sem_post(&(aj->client_wake));
 }
 
 /* Wake client with ability to run job */
@@ -239,7 +239,7 @@ int trigger_job(job_t *tj) {
 
 	// Set client's execution flag to run
 	tj->client_exec_allowed = true;
-	return pthread_cond_signal(&(tj->client_wake));
+	return sem_post(&(tj->client_wake));
 }
 
 int main(int argc, char **argv)
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
 
 				/* TODO: Avoid having client sleep waiting for server */
 				// NOTE: It must be the compl_job the client is holding on to
-				pthread_cond_signal(&(compl_job->client_wake));
+				sem_post(&(compl_job->client_wake));
 
 				// Reset flags since a job just released gpu resources
 				queued_wait_for_complete = false;
@@ -438,6 +438,7 @@ int main(int argc, char **argv)
 			} else {
 				// Adds q_job to jobs_executing on success
 				jobs_executing.push_back(q_job);
+				fprintf(stdout, "jobs executing has size: %d\n", (int)jobs_executing.size());
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");

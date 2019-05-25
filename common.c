@@ -8,6 +8,7 @@
 #include <string.h>				// memset(), strncpy
 #include <stdio.h>				// *printf, perror
 #include <stdint.h>				// int64_t
+#include <semaphore.h>			// sem_t, sem_*()
 #include "mid_structs.h"		// global_jobs_t, GLOBAL_JOBS_MAX*, JOB_MEM_NAME_MAX_LEN
 #include "mid_common.h"
 
@@ -156,20 +157,12 @@ int build_job(pid_t pid, pid_t tid, const char *job_name,
 	shm_job->required_mem= required_mem;
 	shm_job->req_type = req_type;
 
-	// Init client-server locks and state
-	pthread_condattr_t cond_attr;
-	pthread_mutexattr_t mutex_attr;
-
-	// Initialize client_wake cond_var to be PROCESS_SHARED
-	(void) pthread_condattr_init(&cond_attr);
-	(void) pthread_mutexattr_init(&mutex_attr);
-
-	(void) pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
-	(void) pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
-
-	(void) pthread_mutex_init(&(shm_job->own_job), &mutex_attr);
-	(void) pthread_cond_init(&(shm_job->client_wake), &cond_attr);
-
+	// Init client-server semaphore and state
+	int pshared = 1;
+	if (sem_init(&(shm_job->client_wake), pshared, 0U)) {
+		fprintf(stderr, "Failed to init semaphore for shared job!\n");
+		return -1;
+	}
 	shm_job->client_exec_allowed = true;
 
  	return 0;
@@ -190,7 +183,7 @@ int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
     errno = 0;              //  automatically set when error occurs
     int fd = shm_init(job_shm_name);
     if (fd == -1){
-        perror("[Error] in get_shared_job: shm_init failed");
+        perror("[Error] in build_shared_job: shm_init failed");
         return -1;
     }
 

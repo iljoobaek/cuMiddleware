@@ -5,6 +5,7 @@
 #include <string.h>	// strncpy
 #include <stdlib.h> // malloc, free
 #include <stdint.h>	// int64_t
+#include <semaphore.h> // sem_t
 #include "mid_structs.h" /* global_jobs_t, job_t, JOB_MEM_NAME_MAX_LEN */
 #include "mid_common.h"	/* build/destroy_shared_job */
 #include "mid_queue.h" /* submit_job */
@@ -69,14 +70,14 @@ int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
 	/* Enqueue name of shared memory object holding job_t using middleaware interface */
 	//fprintf(stdout, "Client submitting job to server\n");
 	submit_job(gb_jobs, tagged_job, job_shm_name);
+	fprintf(stdout, "[tag_begin] Client waiting on sem next!\n");
 
-	/* Cond_wait on job_t (SHARED PROCESS) condition variable, will wake when server notifies */
-	//fprintf(stdout, "Client cond waiting\n");
-	pthread_cond_wait(&(tagged_job->client_wake), &(tagged_job->own_job));
-	//fprintf(stdout, "Client thread woke up! Exec flag %d\n",
-	//		tagged_job->client_exec_allowed);
-	// Awake, it's fine to unlock own_job
-	pthread_mutex_unlock(&(tagged_job->own_job));
+	/* Sem_wait on job_t (SHARED PROCESS) semaphore, will wake when server
+	 * allows client to wake or notifies client to wake 
+	 */
+	sem_wait(&(tagged_job->client_wake));
+	sem_destroy(&(tagged_job->client_wake)); // Can immediately destroy
+	fprintf(stdout, "[tag_begin]Client woke up!\n");
 
 	// Save exec flag
 	bool exec_allowed = tagged_job->client_exec_allowed;
@@ -119,14 +120,14 @@ int tag_job_end(pid_t pid, pid_t tid, const char *job_name) {
 	/* Enqueue name of shared memory object holding job_t using middleaware interface */
 	//fprintf(stdout, "Client submitting COMPLETED job to server\n");
 	submit_job(gb_jobs, tagged_job, job_shm_name);
+	fprintf(stdout, "[tag_end]Client waiting on sem next!\n");
 
-	/* Cond_wait on job_t (SHARED PROCESS) condition variable, will wake when server notifies */
-	//fprintf(stdout, "Client cond waiting\n");
-	pthread_cond_wait(&(tagged_job->client_wake), &(tagged_job->own_job));
-	//fprintf(stdout, "Client thread woke up! Exec flag %d\n",
-	//		tagged_job->client_exec_allowed);
-	// Awake, it's fine to unlock own_job
-	pthread_mutex_unlock(&(tagged_job->own_job));
+	/* Sem_wait on job_t (SHARED PROCESS) semaphore, will wake when server
+	 * allows client to wake or notifies client to wake 
+	 */
+	sem_wait(&(tagged_job->client_wake));
+	sem_destroy(&(tagged_job->client_wake)); // Can immediately destroy
+	fprintf(stdout, "[tag_end]Client woke up!\n");
 
 	/* On wake, unlink this shared memory, removing clients reference to shm object */
 	shm_unlink(job_shm_name); // TODO: not doing anything

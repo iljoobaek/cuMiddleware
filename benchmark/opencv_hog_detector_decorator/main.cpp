@@ -114,6 +114,587 @@ int gpu_hog_calculator_2(Mat image_roi)
     return 1;
 }
 
+int gpu_hog_calculator_layer_1(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_2(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_3(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_4(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_5(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_6(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_7(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_8(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_9(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_10(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_11(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_12(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_13(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_14(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_15(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_16(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_17(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_18(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_19(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+int gpu_hog_calculator_layer_20(Mat image_roi)
+{
+    // GPU-related initialization
+    cuda::GpuMat src_gpu, mono_gpu;
+    cuda::GpuMat gpu_hog_descriptor;
+    cv::Ptr<cv::cuda::HOG> gpu_hog = cv::cuda::HOG::create(Size(hog_Width, hog_Height), Size(16,16), Size(8,8), Size(8,8), 9);
+
+    // copy image from cpu to gpu
+    src_gpu.upload(image_roi);
+
+    // color conversion
+    cuda::cvtColor(src_gpu, mono_gpu, CV_BGR2GRAY);
+
+    // hog calculation
+    gpu_hog->compute(mono_gpu, gpu_hog_descriptor);
+
+    // copy result from gpu to cpu
+    Mat cpu_hog_descriptor;
+    gpu_hog_descriptor.download(cpu_hog_descriptor);
+    //cout << "GPU HoG size = " << gpu_hog->getDescriptorSize() << endl;
+    //cout << "GPU HoG size = " << cpu_hog_descriptor.size() << endl;
+
+    // release gpu memory
+    src_gpu.release();
+    mono_gpu.release();
+    gpu_hog_descriptor.release();
+    return 1;
+}
+
+
 int main(int argc, char** argv)
 {
     Mat cur_img;
@@ -132,11 +713,31 @@ int main(int argc, char** argv)
 
     // tagging - decorator
     const char *frame_name = "opencv_hog_calculator";
-	FrameController fc(frame_name, 50, false);
+	FrameController fc(frame_name, 15, false);
 
     // decorate work functions
 	auto tagged_work1_ptr = frame_job_decorator(gpu_hog_calculator_1, &fc, "gpu_hog_calculator_1", true);
 	auto tagged_work2_ptr = frame_job_decorator(gpu_hog_calculator_2, &fc, "gpu_hog_calculator_2", true);
+    /*auto tagged_work1_ptr = frame_job_decorator(gpu_hog_calculator_layer_1, &fc, "gpu_hog_calculator_layer_1", true);
+    auto tagged_work2_ptr = frame_job_decorator(gpu_hog_calculator_layer_2, &fc, "gpu_hog_calculator_layer_2", true);
+    auto tagged_work3_ptr = frame_job_decorator(gpu_hog_calculator_layer_3, &fc, "gpu_hog_calculator_layer_3", true);
+    auto tagged_work4_ptr = frame_job_decorator(gpu_hog_calculator_layer_4, &fc, "gpu_hog_calculator_layer_4", true);
+    auto tagged_work5_ptr = frame_job_decorator(gpu_hog_calculator_layer_5, &fc, "gpu_hog_calculator_layer_5", true);
+    auto tagged_work6_ptr = frame_job_decorator(gpu_hog_calculator_layer_6, &fc, "gpu_hog_calculator_layer_6", true);
+    auto tagged_work7_ptr = frame_job_decorator(gpu_hog_calculator_layer_7, &fc, "gpu_hog_calculator_layer_7", true);
+    auto tagged_work8_ptr = frame_job_decorator(gpu_hog_calculator_layer_8, &fc, "gpu_hog_calculator_layer_8", true);
+    auto tagged_work9_ptr = frame_job_decorator(gpu_hog_calculator_layer_9, &fc, "gpu_hog_calculator_layer_9", true);
+    auto tagged_work10_ptr = frame_job_decorator(gpu_hog_calculator_layer_10, &fc, "gpu_hog_calculator_layer_10", true);
+    auto tagged_work11_ptr = frame_job_decorator(gpu_hog_calculator_layer_11, &fc, "gpu_hog_calculator_layer_11", true);
+    auto tagged_work12_ptr = frame_job_decorator(gpu_hog_calculator_layer_12, &fc, "gpu_hog_calculator_layer_12", true);
+    auto tagged_work13_ptr = frame_job_decorator(gpu_hog_calculator_layer_13, &fc, "gpu_hog_calculator_layer_13", true);
+    auto tagged_work14_ptr = frame_job_decorator(gpu_hog_calculator_layer_14, &fc, "gpu_hog_calculator_layer_14", true);
+    auto tagged_work15_ptr = frame_job_decorator(gpu_hog_calculator_layer_15, &fc, "gpu_hog_calculator_layer_15", true);
+    auto tagged_work16_ptr = frame_job_decorator(gpu_hog_calculator_layer_16, &fc, "gpu_hog_calculator_layer_16", true);
+    auto tagged_work17_ptr = frame_job_decorator(gpu_hog_calculator_layer_17, &fc, "gpu_hog_calculator_layer_17", true);
+    auto tagged_work18_ptr = frame_job_decorator(gpu_hog_calculator_layer_18, &fc, "gpu_hog_calculator_layer_18", true);
+    auto tagged_work19_ptr = frame_job_decorator(gpu_hog_calculator_layer_19, &fc, "gpu_hog_calculator_layer_19", true);
+    auto tagged_work20_ptr = frame_job_decorator(gpu_hog_calculator_layer_20, &fc, "gpu_hog_calculator_layer_20", true);*/
 
     while(true)
     {
@@ -178,9 +779,29 @@ int main(int argc, char** argv)
         //gpu_hog_calculator_1(image_roi);
         //gpu_hog_calculator_2(image_roi);
 
-		(*tagged_work1_ptr)(image_roi);
+        (*tagged_work1_ptr)(image_roi);
 		(*tagged_work2_ptr)(image_roi);
 
+		/*(*tagged_work1_ptr)(image_roi);
+		(*tagged_work2_ptr)(image_roi);
+        (*tagged_work3_ptr)(image_roi);
+		(*tagged_work4_ptr)(image_roi);
+        (*tagged_work5_ptr)(image_roi);
+		(*tagged_work6_ptr)(image_roi);
+        (*tagged_work7_ptr)(image_roi);
+		(*tagged_work8_ptr)(image_roi);
+        (*tagged_work9_ptr)(image_roi);
+		(*tagged_work10_ptr)(image_roi);
+        (*tagged_work11_ptr)(image_roi);
+		(*tagged_work12_ptr)(image_roi);
+        (*tagged_work13_ptr)(image_roi);
+		(*tagged_work14_ptr)(image_roi);
+        (*tagged_work15_ptr)(image_roi);
+		(*tagged_work16_ptr)(image_roi);
+        (*tagged_work17_ptr)(image_roi);
+		(*tagged_work18_ptr)(image_roi);
+        (*tagged_work19_ptr)(image_roi);
+		(*tagged_work20_ptr)(image_roi);*/
 
         #else /*USE_GPU_HOG*/
         Mat gray;

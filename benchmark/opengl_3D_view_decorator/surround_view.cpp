@@ -466,6 +466,111 @@ int ConvertIplToTexturePX2_3(IplImage *image)
 	return 0;
 }
 
+int ConvertIplToTexturePX2_4(IplImage *image, GLuint *texture)
+{
+	glGenTextures(1,texture);
+	glBindTexture(GL_TEXTURE_2D,*texture);
+
+	cvFlip(image, NULL, -1);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
+	return 0;
+}
+
+
+int ConvertIplToTexturePX2_5(IplImage *image)
+{
+	//printf("target_im_width = %d, target_im_height = %d\n", target_im->width, target_im->height);
+	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, image->width, image->height, 0, GL_BGR, GL_UNSIGNED_BYTE, image->imageData);
+	// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
+	return 0;
+}
+
+int ConvertIplToTexturePX2_6(IplImage *image)
+{
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+	return 0;
+}
+
+int ConvertIplToTexturePX2_7(IplImage *image, GLuint *texture)
+{
+	glGenTextures(1,texture);
+	glBindTexture(GL_TEXTURE_2D,*texture);
+
+	cvFlip(image, NULL, -1);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
+	return 0;
+}
+
+
+int ConvertIplToTexturePX2_8(IplImage *image)
+{
+	//printf("target_im_width = %d, target_im_height = %d\n", target_im->width, target_im->height);
+	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, image->width, image->height, 0, GL_BGR, GL_UNSIGNED_BYTE, image->imageData);
+	// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
+	return 0;
+}
+
+int ConvertIplToTexturePX2_9(IplImage *image)
+{
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+	return 0;
+}
+
+int ConvertIplToTexturePX2_10(IplImage *image, GLuint *texture)
+{
+	glGenTextures(1,texture);
+	glBindTexture(GL_TEXTURE_2D,*texture);
+
+	cvFlip(image, NULL, -1);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
+	return 0;
+}
+
+
+int ConvertIplToTexturePX2_11(IplImage *image)
+{
+	//printf("target_im_width = %d, target_im_height = %d\n", target_im->width, target_im->height);
+	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, image->width, image->height, 0, GL_BGR, GL_UNSIGNED_BYTE, image->imageData);
+	// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
+	return 0;
+}
+
+int ConvertIplToTexturePX2_12(IplImage *image)
+{
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+	return 0;
+}
+
 // tagging - framecontroller
 const char *frame_name = "opengl_load_texture";
 FrameController fc(frame_name, 10, false);
@@ -474,8 +579,17 @@ FrameController fc(frame_name, 10, false);
 auto tagged_work1_ptr = frame_job_decorator(ConvertIplToTexturePX2_1, &fc, "ConvertIplToTexturePX2_1", false);
 auto tagged_work2_ptr = frame_job_decorator(ConvertIplToTexturePX2_2, &fc, "ConvertIplToTexturePX2_2", false);
 auto tagged_work3_ptr = frame_job_decorator(ConvertIplToTexturePX2_3, &fc, "ConvertIplToTexturePX2_3", false);
+auto tagged_work4_ptr = frame_job_decorator(ConvertIplToTexturePX2_4, &fc, "ConvertIplToTexturePX2_4", false);
+auto tagged_work5_ptr = frame_job_decorator(ConvertIplToTexturePX2_5, &fc, "ConvertIplToTexturePX2_5", false);
+auto tagged_work6_ptr = frame_job_decorator(ConvertIplToTexturePX2_6, &fc, "ConvertIplToTexturePX2_6", false);
+auto tagged_work7_ptr = frame_job_decorator(ConvertIplToTexturePX2_7, &fc, "ConvertIplToTexturePX2_7", false);
+auto tagged_work8_ptr = frame_job_decorator(ConvertIplToTexturePX2_8, &fc, "ConvertIplToTexturePX2_8", false);
+auto tagged_work9_ptr = frame_job_decorator(ConvertIplToTexturePX2_9, &fc, "ConvertIplToTexturePX2_9", false);
+auto tagged_work10_ptr = frame_job_decorator(ConvertIplToTexturePX2_10, &fc, "ConvertIplToTexturePX2_10", false);
+auto tagged_work11_ptr = frame_job_decorator(ConvertIplToTexturePX2_11, &fc, "ConvertIplToTexturePX2_11", false);
+auto tagged_work12_ptr = frame_job_decorator(ConvertIplToTexturePX2_12, &fc, "ConvertIplToTexturePX2_12", false);
 
-GLuint ConvertIplToTexturePX2_tag(IplImage *image, GLuint *texture)
+GLuint ConvertIplToTexturePX2_tag_1(IplImage *image, GLuint *texture)
 {
 	//ConvertIplToTexturePX2_1(image, texture);
 	//ConvertIplToTexturePX2_2(image);
@@ -483,6 +597,36 @@ GLuint ConvertIplToTexturePX2_tag(IplImage *image, GLuint *texture)
 	(*tagged_work1_ptr)(image, texture);
 	(*tagged_work2_ptr)(image);
 	(*tagged_work3_ptr)(image);
+}
+
+GLuint ConvertIplToTexturePX2_tag_2(IplImage *image, GLuint *texture)
+{
+	//ConvertIplToTexturePX2_1(image, texture);
+	//ConvertIplToTexturePX2_2(image);
+	//ConvertIplToTexturePX2_3(image);
+	(*tagged_work4_ptr)(image, texture);
+	(*tagged_work5_ptr)(image);
+	(*tagged_work6_ptr)(image);
+}
+
+GLuint ConvertIplToTexturePX2_tag_3(IplImage *image, GLuint *texture)
+{
+	//ConvertIplToTexturePX2_1(image, texture);
+	//ConvertIplToTexturePX2_2(image);
+	//ConvertIplToTexturePX2_3(image);
+	(*tagged_work7_ptr)(image, texture);
+	(*tagged_work8_ptr)(image);
+	(*tagged_work9_ptr)(image);
+}
+
+GLuint ConvertIplToTexturePX2_tag_4(IplImage *image, GLuint *texture)
+{
+	//ConvertIplToTexturePX2_1(image, texture);
+	//ConvertIplToTexturePX2_2(image);
+	//ConvertIplToTexturePX2_3(image);
+	(*tagged_work10_ptr)(image, texture);
+	(*tagged_work11_ptr)(image);
+	(*tagged_work12_ptr)(image);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -694,9 +838,17 @@ int acquireFrameFromVideo()
 
 			if (gFrames[i] != NULL)
 			{
-				if (px2 == 1)
+				if (px2 == 1) {
 					//gTextures[i] = ConvertIplToTexturePX2(gFrames[i]);
-					ConvertIplToTexturePX2_tag(gFrames[i], &gTextures[i]);
+					if (i==0)
+						ConvertIplToTexturePX2_tag_1(gFrames[i], &gTextures[i]);
+					if (i==1)
+						ConvertIplToTexturePX2_tag_2(gFrames[i], &gTextures[i]);
+					if (i==2)
+						ConvertIplToTexturePX2_tag_3(gFrames[i], &gTextures[i]);
+					if (i==3)
+						ConvertIplToTexturePX2_tag_4(gFrames[i], &gTextures[i]);
+				}
 				else
 					gTextures[i] = ConvertIplToTexture(gFrames[i], i+1);
 			}

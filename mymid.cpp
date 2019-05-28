@@ -29,7 +29,7 @@
 #define SLACKTIME_THRESHOLD (5*SLEEP_MICROSECONDS)
 #define CURR_SLACKTIME_PQ_EMPTY_OFFSET (rel_priority_period_count*SLEEP_MICROSECONDS)
 #define WITHIN_SLACKTIME_THRESHOLD(s) \
-	(s - CURR_SLACKTIME_PQ_EMPTY_OFFSET < SLACKTIME_THRESHOLD)
+	(s < (int64_t)CURR_SLACKTIME_PQ_EMPTY_OFFSET + SLACKTIME_THRESHOLD)
 
 struct CompareJobSlack {
 public:
@@ -201,7 +201,7 @@ int job_acquire_gpu(job_t *j) {
 	}
 	if (!should_run_now) {
 		// Must wait for slacktime to be within running threshold
-		fprintf(stderr, "Job must wait, slacktime is above running threshold!\n");
+		fprintf(stderr, "Job must wait, slacktime (%ld) is above running threshold (%ld)!\n", j->slacktime, (int64_t)CURR_SLACKTIME_PQ_EMPTY_OFFSET + SLACKTIME_THRESHOLD);
 		return -1;
 	}
 
@@ -288,7 +288,6 @@ int main(int argc, char **argv)
 	// Init flags controlling when jobs_queued_* can't be emptied becase
 	// GPU is at capacity
 	bool queued_wait_for_complete = false;
-	bool pq_wait_flag = false;
 
 	// Global jobs queue has been initialized
 	// Begin waiting for job_shm_names to be enqueued (sample every 250ms)
@@ -322,7 +321,6 @@ int main(int argc, char **argv)
 					}
 					jobs_queued_pr.push(q_job);
 					// Just updated pq, can try to process next job immediately
-					pq_wait_flag = false;
 				}
 			}
 			else {
@@ -368,7 +366,6 @@ int main(int argc, char **argv)
 
 				// Reset flags since a job just released gpu resources
 				queued_wait_for_complete = false;
-				pq_wait_flag = false;
 
 				// Destroy shared jobs
 				destroy_shared_job(&orig_job);
@@ -431,8 +428,7 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Jobs queued pr has size %d, rel_p_p_count %d\n", (int)jobs_queued_pr.size(), (int)rel_priority_period_count);
 			rel_priority_period_count++;
 		}
-		while (!pq_wait_flag &&
-				jobs_queued_pr.size()) {
+		while (jobs_queued_pr.size()) {
 			/* Peek at top job from jobs_queued_pr */
 			job_t *q_job = jobs_queued_pr.top();
 
@@ -443,7 +439,6 @@ int main(int argc, char **argv)
 				if (res == -1) {
 					// Failed to acquire GPU, must wait for other jobs to complete
 					fprintf(stdout, "\tJob must wait for job(s) to complete!\n");
-					pq_wait_flag = true;
 					break;
 				} else {
 					// Job is too big to fit on the GPU, instruct client to abort

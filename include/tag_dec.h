@@ -46,7 +46,6 @@ struct FrameJobDecorator<R(Args ...)>
 
 	R operator()(Args ... args)
 	{
-		std::cout << "Calling the decorated function.\n";
 		/* Tag work begin */
 		pid_t tid = gettid();
 		int prep_val = fc->prepare_job_by_id(fj_id, tid);

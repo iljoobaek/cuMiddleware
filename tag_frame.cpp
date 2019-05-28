@@ -147,7 +147,6 @@ void FrameController::frame_start() {
 	std::chrono::system_clock::time_point now_tp = std::chrono::high_resolution_clock::now();
 	std::chrono::microseconds us_now = std::chrono::duration_cast<std::chrono::microseconds>(now_tp.time_since_epoch());
 
-	fprintf(stderr, "Frame start time: %ld us\n", us_now.count());
 	frame_start_us = us_now.count();	
 	frame_deadline_us = (us_now + desired_frame_drn_us).count();
 }
@@ -159,8 +158,8 @@ void FrameController::frame_end() {
 
 	int64_t frame_us = frame_drn_us.count();
 	double real_fps = 1.0 / (double)(frame_us / MICROS_PER_SECOND);
-	fprintf(stderr, "Frame deadline time: %ld us, frame duration: %ld us, frame FPS %lf\n",
-			frame_deadline_us, frame_us, real_fps);
+	fprintf(stderr, "Frame frame duration: %ld us, frame FPS %lf\n",
+			frame_us, real_fps);
 
 	// Every sampling period, sample the wc execution metrics
 	if (runcount % SAMPLE_WC_PERIOD == 0) {

@@ -116,10 +116,6 @@ int job_release_gpu(job_t *comp_job) {
 			return -2;
 		}
 	}
-	// If job was non-shared, decrement number of gpu_excl_jobs
-	fprintf(stderr, "Completed job has attrs: (%d, %d, %s, %ld, %d, %d)\n",
-			comp_job->pid, comp_job->tid, comp_job->job_name,
-			comp_job->slacktime, comp_job->first_flag, comp_job->shareable_flag);
 	if (!comp_job->shareable_flag) {
 		if (gpu_excl_jobs < 1) {
 			fprintf(stderr, "Couldn't release job because too few gpu_excl_jobs!\n");
@@ -188,7 +184,6 @@ int job_acquire_gpu(job_t *j) {
 	}
 	if (!can_alloc_mem) {
 		// Must wait for jobs to free up GPU mem
-		fprintf(stderr, "Job must wait, not enough memory to run yet!\n");
 		return -1;
 	}
 
@@ -201,7 +196,6 @@ int job_acquire_gpu(job_t *j) {
 	}
 	if (!should_run_now) {
 		// Must wait for slacktime to be within running threshold
-		fprintf(stderr, "Job must wait, slacktime (%ld) is above running threshold (%ld)!\n", j->slacktime, (int64_t)CURR_SLACKTIME_PQ_EMPTY_OFFSET + SLACKTIME_THRESHOLD);
 		return -1;
 	}
 
@@ -219,23 +213,19 @@ int job_acquire_gpu(job_t *j) {
 				can_run_now = true;
 			} else {
 				// Job is not shareable and multiple pids running, must wait
-				fprintf(stderr, "Job is NOT shareable, (1) and there are other pids running\n");
 				can_run_now = false;
 			}
 		} else {
 			// Job is first of its process to run next to other jobs
 			if (j->shareable_flag) {
-				fprintf(stdout, "SHARING GPU!\n");
 				if (gpu_excl_jobs == 0) {
 					// Can run if no other jobs are not-shareable
 					can_run_now = true;
 				} else {
-					fprintf(stderr, "Job IS shareable, and there are other exclusive jobs present\n");
 					can_run_now = false;
 				}
 			} else {
 				// Job can't share gpu with other processes
-				fprintf(stderr, "Job is NOT shareable, (2) and there are other pids running on GPU\n");
 				can_run_now = false;
 			}
 		}
@@ -316,7 +306,6 @@ int main(int argc, char **argv)
 					if (rel_priority_period_count) {
 						// Locally modify the relative priority of this job
 						// compared to older jobs on the pq
-						fprintf(stderr, "Modifying q_job slacktime: %d -> %d\n", (int)q_job->slacktime, (int)(q_job->slacktime + rel_priority_period_count*SLEEP_MICROSECONDS));
 						q_job->slacktime += rel_priority_period_count*SLEEP_MICROSECONDS;
 					}
 					jobs_queued_pr.push(q_job);
@@ -328,8 +317,6 @@ int main(int argc, char **argv)
 
 				jobs_completed.push(q_job);
 			}
-			fprintf(stdout, "Job (%s, tid %d) added to %s queue.\n", q_job->job_name,\
-					q_job->tid, qtype);
 
 			// Continue onto next job_shm_name to process
 			i++;
@@ -341,7 +328,6 @@ int main(int argc, char **argv)
 		/* Handle all completed jobs first to release GPU resources */
 		while (jobs_completed.size()) {
 			/* Dequeue job from completed */
-			fprintf(stdout, "Handling completed job!\n");
 			job_t *compl_job = jobs_completed.front();
 			jobs_completed.pop();
 
@@ -357,8 +343,6 @@ int main(int argc, char **argv)
 			if (job_release_gpu(orig_job) == 0) {
 				// Remove job from jobs_executing on successful release
 				jobs_executing.erase(it);
-				fprintf(stdout, "Removed compl_job (%s, %d) from JOBS_EXECUTING.\n",\
-						compl_job->job_name, compl_job->tid);
 
 				/* TODO: Avoid having client sleep waiting for server */
 				// NOTE: It must be the compl_job the client is holding on to
@@ -379,21 +363,16 @@ int main(int argc, char **argv)
 		/*
 		 * Next, run any jobs that have never run yet (and therefore have no priority).
 		 */
-		if (jobs_queued_first.size()) {
-			fprintf(stdout, "jobs_queued_first size %d\n", (int)jobs_queued_first.size());
-		}
 		while (!queued_wait_for_complete &&
 				jobs_queued_first.size()) {
 			/* Peek at job from jobs_queued */
 			job_t *q_job = jobs_queued_first.front();
 
 			/* Handle queued jobs */
-			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
 			int res = job_acquire_gpu(q_job);
 			if (res < 0) {
 				if (res == -1) {
 					// Failed to acquire GPU, must wait for other jobs to complete
-					fprintf(stdout, "\tJob must wait for job(s) to complete!\n");
 					queued_wait_for_complete = true;
 
 					break;
@@ -408,10 +387,9 @@ int main(int argc, char **argv)
 			} else {
 				// Adds q_job to jobs_executing on success
 				jobs_executing.push_back(q_job);
-				fprintf(stdout, "jobs executing has size: %d\n", (int)jobs_executing.size());
 
 				// Wake client to trigger execution
-				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
+				fprintf(stdout, "\tJob (%s, pid=%d, tid=%d) can execute!\n", q_job->job_name, q_job->pid, q_job->tid);
 				if (trigger_job(q_job) < 0) {
 					fprintf(stderr, "\tFailed to wake client!\n");
 				}
@@ -425,7 +403,6 @@ int main(int argc, char **argv)
 		 */
 		if (jobs_queued_pr.size()) {
 			// Priority queue is not empty, increment the rel_priority_period_count
-			fprintf(stderr, "Jobs queued pr has size %d, rel_p_p_count %d\n", (int)jobs_queued_pr.size(), (int)rel_priority_period_count);
 			rel_priority_period_count++;
 		}
 		while (jobs_queued_pr.size()) {
@@ -433,12 +410,10 @@ int main(int argc, char **argv)
 			job_t *q_job = jobs_queued_pr.top();
 
 			/* Handle queued jobs */
-			fprintf(stdout, "Handling queued job: %s, %d\n", q_job->job_name, q_job->tid);
 			int res = job_acquire_gpu(q_job);
 			if (res < 0) {
 				if (res == -1) {
 					// Failed to acquire GPU, must wait for other jobs to complete
-					fprintf(stdout, "\tJob must wait for job(s) to complete!\n");
 					break;
 				} else {
 					// Job is too big to fit on the GPU, instruct client to abort
@@ -451,10 +426,9 @@ int main(int argc, char **argv)
 			} else {
 				// Adds q_job to jobs_executing on success
 				jobs_executing.push_back(q_job);
-				fprintf(stdout, "jobs executing has size: %d\n", (int)jobs_executing.size());
 
 				// Wake client to trigger execution
-				fprintf(stdout, "\tJob added to JOBS_EXECUTING, waking client now\n");
+				fprintf(stdout, "\tJob (%s, pid=%d, tid=%d) can execute!\n", q_job->job_name, q_job->pid, q_job->tid);
 				if (trigger_job(q_job) < 0) {
 					fprintf(stderr, "\tFailed to wake client!\n");
 				}

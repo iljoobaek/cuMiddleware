@@ -65,7 +65,6 @@ int shm_init(const char *name, off_t init_size){
     int fd;
     fd = shm_open(name, O_RDWR, 0660);
     if (errno == ENOENT){
-        fprintf(stdout, "[INFO] shared memory is intialized for the first time\n");
         fd = shm_open(name, O_RDWR|O_CREAT, 0660);
 
 		// Init shm to have size of job_t struct

@@ -296,13 +296,10 @@ int main(int argc, char **argv)
 			}
 
 			// Enqueue job request to right queue
-			const char *qtype = NULL;
 			if (q_job->req_type == QUEUED) {
 				if (q_job->first_flag) {
-					qtype = "QUEUED_FIRST";
 					jobs_queued_first.push(q_job);
 				} else {
-					qtype = "QUEUED_SLACK";
 					if (rel_priority_period_count) {
 						// Locally modify the relative priority of this job
 						// compared to older jobs on the pq
@@ -313,8 +310,6 @@ int main(int argc, char **argv)
 				}
 			}
 			else {
-				qtype = "COMPLETED";
-
 				jobs_completed.push(q_job);
 			}
 

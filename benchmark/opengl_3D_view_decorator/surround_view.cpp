@@ -573,20 +573,20 @@ int ConvertIplToTexturePX2_12(IplImage *image)
 
 // tagging - framecontroller
 const char *frame_name = "opengl_load_texture";
-FrameController fc(frame_name, 10, false);
+FrameController fc(frame_name, 20, false);
 
 // decorate work functions
 auto tagged_work1_ptr = frame_job_decorator(ConvertIplToTexturePX2_1, &fc, "ConvertIplToTexturePX2_1", false);
 auto tagged_work2_ptr = frame_job_decorator(ConvertIplToTexturePX2_2, &fc, "ConvertIplToTexturePX2_2", false);
-auto tagged_work3_ptr = frame_job_decorator(ConvertIplToTexturePX2_3, &fc, "ConvertIplToTexturePX2_3", false);
+auto tagged_work3_ptr = frame_job_decorator(ConvertIplToTexturePX2_3, &fc, "ConvertIplToTexturePX2_3", true);
 auto tagged_work4_ptr = frame_job_decorator(ConvertIplToTexturePX2_4, &fc, "ConvertIplToTexturePX2_4", false);
 auto tagged_work5_ptr = frame_job_decorator(ConvertIplToTexturePX2_5, &fc, "ConvertIplToTexturePX2_5", false);
 auto tagged_work6_ptr = frame_job_decorator(ConvertIplToTexturePX2_6, &fc, "ConvertIplToTexturePX2_6", false);
-auto tagged_work7_ptr = frame_job_decorator(ConvertIplToTexturePX2_7, &fc, "ConvertIplToTexturePX2_7", false);
+auto tagged_work7_ptr = frame_job_decorator(ConvertIplToTexturePX2_7, &fc, "ConvertIplToTexturePX2_7", true);
 auto tagged_work8_ptr = frame_job_decorator(ConvertIplToTexturePX2_8, &fc, "ConvertIplToTexturePX2_8", false);
 auto tagged_work9_ptr = frame_job_decorator(ConvertIplToTexturePX2_9, &fc, "ConvertIplToTexturePX2_9", false);
 auto tagged_work10_ptr = frame_job_decorator(ConvertIplToTexturePX2_10, &fc, "ConvertIplToTexturePX2_10", false);
-auto tagged_work11_ptr = frame_job_decorator(ConvertIplToTexturePX2_11, &fc, "ConvertIplToTexturePX2_11", false);
+auto tagged_work11_ptr = frame_job_decorator(ConvertIplToTexturePX2_11, &fc, "ConvertIplToTexturePX2_11", true);
 auto tagged_work12_ptr = frame_job_decorator(ConvertIplToTexturePX2_12, &fc, "ConvertIplToTexturePX2_12", false);
 
 GLuint ConvertIplToTexturePX2_tag_1(IplImage *image, GLuint *texture)

@@ -44,6 +44,7 @@ using namespace glm;
 
 // Tagging
 #include <sys/types.h> // pid_t
+#include "tag_frame.h" // FrameController
 #include "tag_state.h" // gettid()
 #include "tag_dec.h" // frame_job_decorator
 #include "tag_gpu.h"
@@ -84,7 +85,7 @@ glm::mat4 gViewMatrix;
 GpuLog gGpuLog;
 TimeLog timeLog;
 
-void GpuBuffer()
+int GpuBuffer()
 {
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -148,9 +149,10 @@ void GpuBuffer()
 		glUniform3f(gLightID, lightPos.x, lightPos.y, lightPos.z);
 
         usleep(5000);
+        return 0;
 }
 
-void DrawEulerRotation()
+int DrawEulerRotation()
 {
         for(int i=0; i<10; i++)
 		{ // Euler
@@ -182,9 +184,10 @@ void DrawEulerRotation()
 				(void*)0           // element array buffer offset
 			);
 		}
+        return 0;
 }
 
-void DrawQuaternionRotation()
+int DrawQuaternionRotation()
 {
         for(int i=0; i<10; i++)
 		{ // Quaternion
@@ -223,10 +226,10 @@ void DrawQuaternionRotation()
 				(void*)0           // element array buffer offset
 			);
 		}
-
+        return 0;
 }
 
-void DrawUI()
+int DrawUI()
 {
     for(int i=0; i<10; i++)
     {
@@ -236,15 +239,17 @@ void DrawUI()
 
 		// Draw GUI
 		TwDraw();
-	}
+    }
+        return 0;
 }
 
-void SwapFrameBuffer()
+int SwapFrameBuffer()
 {
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-		usleep(5000);
+        usleep(5000);
+        return 0;
 }
 
 int main( void )
@@ -407,11 +412,20 @@ int main( void )
 	double lastFrameTime = lastTime;
 	int nbFrames = 0;
 
-    // tagging - get pid, tid
-    pid_t pid = getpid();
-    pid_t tid = gettid();
+    // tagging - decorator
+    const char *frame_name = "opengl_tutorial17";
+	FrameController fc(frame_name, 10, false);
+
+    // decorate work functions
+	auto tagged_work1_ptr = frame_job_decorator(GpuBuffer, &fc, "GpuBuffer", true);
+	auto tagged_work2_ptr = frame_job_decorator(DrawEulerRotation, &fc, "DrawEulerRotation", true);
+    auto tagged_work3_ptr = frame_job_decorator(DrawQuaternionRotation, &fc, "DrawQuaternionRotation", true);
+	auto tagged_work4_ptr = frame_job_decorator(DrawUI, &fc, "DrawUI", true);
+    auto tagged_work5_ptr = frame_job_decorator(SwapFrameBuffer, &fc, "SwapFrameBuffer", true);
 
 	do{
+        // CARSS - Frame control begin
+        fc.frame_start();
 
 		// Measure speed
 		double currentTime = glfwGetTime();
@@ -426,51 +440,35 @@ int main( void )
 			lastTime += 1.0;
 		}
 
-        // Tagging begin ///////////////////////////////////////////////////////////////////
-        const char *task_1_name = "glGpuBuffer";
-        tag_job_begin(pid, tid, task_1_name, 14L, false, true, 0);
+		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Buffer Initialization, Start Frame)
 
-        gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Buffer Initialization, Start Frame)
-        GpuBuffer();
-        gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "GLBuffer", 4);	// Diff(Start Frame, GL Buffer Setup)
+		//GpuBuffer();
+        (*tagged_work1_ptr)();
 
-        // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_job_end(pid, tid, task_1_name);
+		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "GLBuffer", 4);	// Diff(Start Frame, GL Buffer Setup)
 
+		//DrawEulerRotation();
+        (*tagged_work2_ptr)();
 
-        // Tagging begin ///////////////////////////////////////////////////////////////////
-        const char *task_2_name = "glDraw";
-        tag_job_begin(pid, tid, task_2_name, 14L, false, true, 0);
+		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawEuler", 4);	// Diff(GL Buffer Setup, Draw Half)
 
-            DrawEulerRotation();
-            gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawEuler", 4);	// Diff(GL Buffer Setup, Draw Half)
-            DrawQuaternionRotation();
-            gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawQuaternion", 4);	// Diff(Draw Half, Draw Full)
+		//DrawQuaternionRotation();
+        (*tagged_work3_ptr)();
 
-        // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_job_end(pid, tid, task_2_name);
+		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawQuaternion", 4);	// Diff(Draw Half, Draw Full)
 
+		//DrawUI();
+        (*tagged_work4_ptr)();
 
-        // Tagging begin ///////////////////////////////////////////////////////////////////
-        const char *task_3_name = "glDrawUI";
-        tag_job_begin(pid, tid, task_3_name, 14L, false, true, 0);
+		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawUI", 4);	// Diff(Draw Full, Draw UI)
 
-            DrawUI();
-            gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawUI", 4);	// Diff(Draw Full, Draw UI)
+		//SwapFrameBuffer();
+        (*tagged_work5_ptr)();
 
-        // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_job_end(pid, tid, task_3_name);
+		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "SwapFrameBuffer", 4);	// Diff(Draw Full, Swap and End of Frame)
 
-
-        // Tagging begin ///////////////////////////////////////////////////////////////////
-        const char *task_4_name = "glSwapFrameBuffer";
-        tag_job_begin(pid, tid, task_4_name, 14L, false, true, 0);
-
-            SwapFrameBuffer();
-            gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "SwapFrameBuffer", 4);	// Diff(Draw Full, Swap and End of Frame)
-
-        // Tag_end /////////////////////////////////////////////////////////////////////////
-        tag_job_end(pid, tid, task_4_name);
+        // CARSS - Frame control begin
+        fc.frame_end();
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0 );

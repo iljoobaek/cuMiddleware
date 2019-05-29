@@ -35,7 +35,7 @@ struct CompareJobSlack {
 public:
 	/* One job is higher priority than another if its slacktime is <= to others */
     bool operator()(job_t *&j1, job_t *& j2) {
-		return j2->slacktime <= j1->slacktime;
+		return j2->slacktime_us <= j1->slacktime_us;
     }
 };
 struct CompareJobPtr {
@@ -53,10 +53,10 @@ static uint64_t max_gpu_memory_available; // In B
 static uint64_t gpu_memory_available;	// In Bytes
 
 static std::priority_queue<job_t *,\
-		std::vector<job_t *>, CompareJobSlack> jobs_queued_pr;
-static std::queue<job_t*> jobs_queued_first;
-static std::vector<job_t*> jobs_executing;
-static std::queue<job_t*> jobs_completed;
+		std::vector<job_t *>, CompareJobSlack> pq_jobs;
+static std::queue<job_t*> fifo_jobs;
+static std::vector<job_t*> executing_jobs;
+static std::queue<job_t*> completed_jobs;
 static std::unordered_map<pid_t, int> running_pid_jobs;	// How many jobs per pid concurrently running on GPU
 static int gpu_excl_jobs = 0;	// How many jobs are running on GPU with non-shareable flag
 // In order to maintain a relative ordering of old and new jobs on the pq
@@ -95,15 +95,15 @@ int job_release_gpu(job_t *comp_job) {
 	}
 
 	// Verify release of memory
-	if (gpu_memory_available + comp_job->required_mem < gpu_memory_available) {
+	if (gpu_memory_available + comp_job->required_mem_b < gpu_memory_available) {
 		// Something's wrong, overflow occurred when releasing memory
 		fprintf(stderr, "Overflow occurred when releasing gpu for job with name %s (wpm %lu, avail %lu)\n!",\
-				comp_job->job_name, comp_job->required_mem, gpu_memory_available);
+				comp_job->job_name, comp_job->required_mem_b, gpu_memory_available);
 		return -2;
 	}
 
 	// Acquired memory
-	int acquired_mem = comp_job->required_mem ? comp_job->required_mem : max_gpu_memory_available;
+	int acquired_mem = comp_job->required_mem_b ? comp_job->required_mem_b : max_gpu_memory_available;
 
 	// Verify decrement number of jobs running under job's pid
 	auto it = running_pid_jobs.find(comp_job->pid);
@@ -136,11 +136,11 @@ int job_release_gpu(job_t *comp_job) {
 
 // Helper function for bookkeeping of allocating gpu resources for job
 void alloc_gpu_for_job(job_t *j) {
-	if (j->required_mem == 0) {
+	if (j->required_mem_b == 0) {
 		// Allocate all of gpu
 		gpu_memory_available = 0;
 	} else {
-		gpu_memory_available -= j->required_mem;
+		gpu_memory_available -= j->required_mem_b;
 	}
 
 	auto it = running_pid_jobs.find(j->pid);
@@ -170,13 +170,13 @@ int job_acquire_gpu(job_t *j) {
 	if (!j) return -2;
 
 	bool can_alloc_mem = false;
-	if (j->required_mem > max_gpu_memory_available) {
+	if (j->required_mem_b > max_gpu_memory_available) {
 		// Must abort job, can never run on the GPU
 		return -2;
 	} else {
-		if (j->required_mem == 0 && gpu_memory_available == max_gpu_memory_available) {
+		if (j->required_mem_b == 0 && gpu_memory_available == max_gpu_memory_available) {
 			can_alloc_mem = true;
-		} else if (j->required_mem < gpu_memory_available) {
+		} else if (j->required_mem_b < gpu_memory_available) {
 			can_alloc_mem = true;
 		} else {
 			can_alloc_mem = false;
@@ -188,11 +188,11 @@ int job_acquire_gpu(job_t *j) {
 	}
 
 	bool should_run_now = false;
-	if (j->first_flag) {
+	if (j->noslack_flag) {
 		should_run_now = true;
 	} else {
 		// Whether job should run now depends on slacktime threshold
-		should_run_now = WITHIN_SLACKTIME_THRESHOLD(j->slacktime);
+		should_run_now = WITHIN_SLACKTIME_THRESHOLD(j->slacktime_us);
 	}
 	if (!should_run_now) {
 		// Must wait for slacktime to be within running threshold
@@ -297,20 +297,20 @@ int main(int argc, char **argv)
 
 			// Enqueue job request to right queue
 			if (q_job->req_type == QUEUED) {
-				if (q_job->first_flag) {
-					jobs_queued_first.push(q_job);
+				if (q_job->noslack_flag) {
+					fifo_jobs.push(q_job);
 				} else {
 					if (rel_priority_period_count) {
 						// Locally modify the relative priority of this job
 						// compared to older jobs on the pq
-						q_job->slacktime += rel_priority_period_count*SLEEP_MICROSECONDS;
+						q_job->slacktime_us += rel_priority_period_count*SLEEP_MICROSECONDS;
 					}
-					jobs_queued_pr.push(q_job);
+					pq_jobs.push(q_job);
 					// Just updated pq, can try to process next job immediately
 				}
 			}
 			else {
-				jobs_completed.push(q_job);
+				completed_jobs.push(q_job);
 			}
 
 			// Continue onto next job_shm_name to process
@@ -321,23 +321,23 @@ int main(int argc, char **argv)
 		pthread_mutex_unlock(&(GJ->requests_q_lock));
 
 		/* Handle all completed jobs first to release GPU resources */
-		while (jobs_completed.size()) {
+		while (completed_jobs.size()) {
 			/* Dequeue job from completed */
-			job_t *compl_job = jobs_completed.front();
-			jobs_completed.pop();
+			job_t *compl_job = completed_jobs.front();
+			completed_jobs.pop();
 
 			/* Handle completed jobs */
 			// First, get original job from executing queue
-			auto it = std::find_if(jobs_executing.begin(),
-					jobs_executing.end(),
+			auto it = std::find_if(executing_jobs.begin(),
+					executing_jobs.end(),
 					CompareJobPtr(compl_job));
-			assert(it != jobs_executing.end());
-			job_t *orig_job = jobs_executing[it - jobs_executing.begin()];
+			assert(it != executing_jobs.end());
+			job_t *orig_job = executing_jobs[it - executing_jobs.begin()];
 
 			// Next, release job and remove from executing queue
 			if (job_release_gpu(orig_job) == 0) {
-				// Remove job from jobs_executing on successful release
-				jobs_executing.erase(it);
+				// Remove job from executing_jobs on successful release
+				executing_jobs.erase(it);
 
 				/* TODO: Avoid having client sleep waiting for server */
 				// NOTE: It must be the compl_job the client is holding on to
@@ -359,9 +359,9 @@ int main(int argc, char **argv)
 		 * Next, run any jobs that have never run yet (and therefore have no priority).
 		 */
 		while (!queued_wait_for_complete &&
-				jobs_queued_first.size()) {
+				fifo_jobs.size()) {
 			/* Peek at job from jobs_queued */
-			job_t *q_job = jobs_queued_first.front();
+			job_t *q_job = fifo_jobs.front();
 
 			/* Handle queued jobs */
 			int res = job_acquire_gpu(q_job);
@@ -380,8 +380,8 @@ int main(int argc, char **argv)
 					destroy_shared_job(&q_job);
 				}
 			} else {
-				// Adds q_job to jobs_executing on success
-				jobs_executing.push_back(q_job);
+				// Adds q_job to executing_jobs on success
+				executing_jobs.push_back(q_job);
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob (%s, pid=%d, tid=%d) can execute!\n", q_job->job_name, q_job->pid, q_job->tid);
@@ -390,19 +390,19 @@ int main(int argc, char **argv)
 				}
 			}
 			// Actually pop job off queue
-			jobs_queued_first.pop();
+			fifo_jobs.pop();
 		}
 
 		/*
 		 * Lastly, run as many jobs (according to priority) as can fit on GPU.
 		 */
-		if (jobs_queued_pr.size()) {
+		if (pq_jobs.size()) {
 			// Priority queue is not empty, increment the rel_priority_period_count
 			rel_priority_period_count++;
 		}
-		while (jobs_queued_pr.size()) {
-			/* Peek at top job from jobs_queued_pr */
-			job_t *q_job = jobs_queued_pr.top();
+		while (pq_jobs.size()) {
+			/* Peek at top job from pq_jobs */
+			job_t *q_job = pq_jobs.top();
 
 			/* Handle queued jobs */
 			int res = job_acquire_gpu(q_job);
@@ -419,8 +419,8 @@ int main(int argc, char **argv)
 					destroy_shared_job(&q_job);
 				}
 			} else {
-				// Adds q_job to jobs_executing on success
-				jobs_executing.push_back(q_job);
+				// Adds q_job to executing_jobs on success
+				executing_jobs.push_back(q_job);
 
 				// Wake client to trigger execution
 				fprintf(stdout, "\tJob (%s, pid=%d, tid=%d) can execute!\n", q_job->job_name, q_job->pid, q_job->tid);
@@ -429,9 +429,9 @@ int main(int argc, char **argv)
 				}
 			}
 			// Pop job off priority-queue 
-			jobs_queued_pr.pop();
+			pq_jobs.pop();
 
-			if (jobs_queued_pr.size() == 0) {
+			if (pq_jobs.size() == 0) {
 				// Reset the relative priority period counter
 				rel_priority_period_count = 0;
 			}

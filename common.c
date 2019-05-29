@@ -136,9 +136,9 @@ bool jobs_equal(job_t *a, job_t *b) {
 }
 
 int build_job(pid_t pid, pid_t tid, const char *job_name,
-						int64_t slacktime, bool first_flag,
+						int64_t slacktime_us, bool noslack_flag,
 						bool shareable_flag,
-						uint64_t required_mem,
+						uint64_t required_mem_b,
 						enum job_type req_type,
 						job_t *shm_job) {
 	// Fail on bad mapped job
@@ -148,10 +148,10 @@ int build_job(pid_t pid, pid_t tid, const char *job_name,
 	shm_job->pid = pid;
 	shm_job->tid = tid;
 	strncpy(shm_job->job_name, job_name, JOB_MEM_NAME_MAX_LEN);
-	shm_job->slacktime = slacktime;
-	shm_job->first_flag = first_flag;
+	shm_job->slacktime_us = slacktime_us;
+	shm_job->noslack_flag = noslack_flag;
 	shm_job->shareable_flag = shareable_flag;
-	shm_job->required_mem= required_mem;
+	shm_job->required_mem_b = required_mem_b;
 	shm_job->req_type = req_type;
 
 	// Init client-server semaphore and state
@@ -166,9 +166,9 @@ int build_job(pid_t pid, pid_t tid, const char *job_name,
 }
 
 int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
-						int64_t slacktime, bool first_flag,
+						int64_t slacktime_us, bool noslack_flag,
 						bool shareable_flag,
-						uint64_t required_mem,
+						uint64_t required_mem_b,
 						enum job_type req_type,
 						job_t **save_new_job,
 						char *copy_shm_name) {
@@ -203,8 +203,8 @@ int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
 
 	// Save job and job_shm_name for caller
 	DEBUG_FN(build_job, pid, tid, job_name,
-						slacktime, first_flag, shareable_flag,
-						required_mem,
+						slacktime_us, noslack_flag, shareable_flag,
+						required_mem_b,
 						req_type, shm_job);
 	*save_new_job = shm_job;
 	strncpy(copy_shm_name, job_shm_name, JOB_MEM_NAME_MAX_LEN);

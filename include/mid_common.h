@@ -36,9 +36,9 @@ int get_shared_job(const char *name, job_t **save_job);
 
 bool jobs_equal(job_t *a, job_t *b);
 int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
-						int64_t slacktime, bool first_flag,
+						int64_t slacktime_us, bool noslack_flag,
 						bool shareable_flag,
-						uint64_t required_mem,
+						uint64_t required_mem_b,
 						enum job_type req_type,
 						job_t **save_new_job,
 						char *copy_shm_name);

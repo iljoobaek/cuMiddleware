@@ -29,9 +29,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-int shm_init(const char *name);
+int shm_init(const char *name, off_t init_size);
 int shm_destroy(const char *name, int fd);
-int init_global_jobs(int *fd, global_jobs_t **addr);
+int init_global_jobs(int *fd, global_jobs_t **addr, bool init_flag);
 int get_shared_job(const char *name, job_t **save_job);
 
 bool jobs_equal(job_t *a, job_t *b);

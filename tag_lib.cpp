@@ -1,11 +1,12 @@
 #include <time.h>       /* time_t */
-#include <sys/mman.h>  /* shm_unlink, munmap */
+#include <sys/mman.h>  /* munmap */
 #include <sys/types.h> /* pid_t */
 #include <err.h>		// err
 #include <string.h>	// strncpy
 #include <stdlib.h> // malloc, free
 #include <stdint.h>	// int64_t
 #include <semaphore.h> // sem_t
+#include <unistd.h>	// close(fd)
 #include "mid_structs.h" /* global_jobs_t, job_t, JOB_MEM_NAME_MAX_LEN */
 #include "mid_common.h"	/* build/destroy_shared_job */
 #include "mid_queue.h" /* submit_job */
@@ -55,7 +56,8 @@ int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
 		uint64_t required_mem) {
 	/* First, init global jobs if not already */
 	if (gb_jobs == NULL) {
-		TAG_DEBUG_FN(init_global_jobs, &gb_fd, &gb_jobs);
+		TAG_DEBUG_FN(init_global_jobs, &gb_fd, &gb_jobs, false);
+		close(gb_fd);
 	}
 
 	/* Next, build a job_t in shared memory at shared memory location */
@@ -82,9 +84,8 @@ int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
 	// Save exec flag
 	bool exec_allowed = tagged_job->client_exec_allowed;
 
-	/* On wake, unlink and unmap this shared memory,
+	/* On wake, unmap this shared memory,
 	 * removing clients reference to shm object */
-	shm_unlink(job_shm_name); // TODO not doing anything
 	//fprintf(stdout, "Destroying shared job\n");
 	TAG_DEBUG_FN(destroy_shared_job, &tagged_job);
 	//fprintf(stdout, "Destroyed shared job\n");
@@ -128,9 +129,6 @@ int tag_job_end(pid_t pid, pid_t tid, const char *job_name) {
 	sem_wait(&(tagged_job->client_wake));
 	sem_destroy(&(tagged_job->client_wake)); // Can immediately destroy
 	fprintf(stdout, "[tag_end]Client woke up!\n");
-
-	/* On wake, unlink this shared memory, removing clients reference to shm object */
-	shm_unlink(job_shm_name); // TODO: not doing anything
 
 	/* Unmap the shared job built for server on clientside */
 	TAG_DEBUG_FN(destroy_shared_job, &tagged_job);

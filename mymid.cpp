@@ -276,7 +276,7 @@ int main(int argc, char **argv)
 	fprintf(stdout, "GPU Memory has %lu bytes available at init.\n", gpu_memory_available);
 
 	int res;
-	if ((res=init_global_jobs(&GJ_fd, &GJ)) < 0)
+	if ((res=init_global_jobs(&GJ_fd, &GJ, true)) < 0)
 	{
 		fprintf(stderr, "Failed to init global jobs queue");
 		return EXIT_FAILURE;

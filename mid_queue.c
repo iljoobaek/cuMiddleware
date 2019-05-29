@@ -27,10 +27,9 @@ void submit_job(global_jobs_t *gj, job_t *new_job, char *job_shm_name){
 	pthread_mutex_lock(&(gj->requests_q_lock));
 	
 	// Then modify job_shm_names 
-    memcpy(gj->job_shm_names[gj->total_count], job_shm_name,
+    strncpy(gj->job_shm_names[gj->total_count], job_shm_name,
 		   JOB_MEM_NAME_MAX_LEN);    
     gj->total_count += 1;
-	fprintf(stderr, "Submitted job (%s), shm_names has size %d\n", job_shm_name, gj->total_count);
 
 	// Lastly, unlock
 	pthread_mutex_unlock(&(gj->requests_q_lock));

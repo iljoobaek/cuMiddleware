@@ -1,5 +1,5 @@
 #include <assert.h>				// assert()
-#include <sys/types.h>
+#include <sys/types.h> 			// off_t
 #include <sys/mman.h>
 #include <sys/stat.h>           // for mode constants
 #include <errno.h>
@@ -12,19 +12,15 @@
 #include "mid_structs.h"		// global_jobs_t, GLOBAL_JOBS_MAX*, JOB_MEM_NAME_MAX_LEN
 #include "mid_common.h"
 
-int init_global_jobs(int *fd, global_jobs_t **addr)
+int init_global_jobs(int *fd, global_jobs_t **addr, bool init_flag)
 {
 	// Get fd for shared GLOBAL_MEM_SIZE memory region
     errno = 0;              //  automatically set when error occurs
-    *fd = shm_init(GLOBAL_MEM_NAME);
+    // open/create POSIX shared memory; if it doesn't exist, create one.
+    *fd = shm_init(GLOBAL_MEM_NAME, GLOBAL_MEM_SIZE);
     if (*fd == -1){
         perror("[Error] in mmap_global_jobs_queue: shm_init failed");
         return -1;
-    }
-
-	// Init GLOBAL_MEM_SIZE
-    if (ftruncate(*fd, GLOBAL_MEM_SIZE) != 0) {
-        perror("ftruncate");
     }
 
     *addr = (global_jobs_t *)mmap(  NULL,
@@ -40,20 +36,22 @@ int init_global_jobs(int *fd, global_jobs_t **addr)
     }
 
 	/* Initialize the global_jobs_t struct in shared memory */
-	global_jobs_t *gj = *addr;
-	gj->is_active = 1;
-	gj->total_count = 0;
-	// Zero out the job_shm_names array
-	memset(gj->job_shm_names, 0, GLOBAL_JOBS_MAX_JOBS * JOB_MEM_NAME_MAX_LEN);
+	if (init_flag) {
+		global_jobs_t *gj = *addr;
+		gj->is_active = 1;
+		gj->total_count = 0;
+		// Zero out the job_shm_names array
+		memset(gj->job_shm_names, 0, GLOBAL_JOBS_MAX_JOBS * JOB_MEM_NAME_MAX_LEN);
 
-	// Initialize the global lock on the job_shm_names list
-	pthread_mutexattr_t mutex_attr;
+		// Initialize the global lock on the job_shm_names list
+		pthread_mutexattr_t mutex_attr;
 
-	// Initialize requests_q_lock to be PROCESS_SHARED
-	(void) pthread_mutexattr_init(&mutex_attr);
-	(void) pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+		// Initialize requests_q_lock to be PROCESS_SHARED
+		(void) pthread_mutexattr_init(&mutex_attr);
+		(void) pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
 
-	(void) pthread_mutex_init(&(gj->requests_q_lock), &mutex_attr);
+		(void) pthread_mutex_init(&(gj->requests_q_lock), &mutex_attr);
+	}
 
 	return 0;
 }
@@ -61,14 +59,19 @@ int init_global_jobs(int *fd, global_jobs_t **addr)
 // helper functions for creating space in shared memory:
 // shm_init: returns the file descriptor after creating a shared memory. returns
 //  -1 on error;
-int shm_init(const char *name){
+int shm_init(const char *name, off_t init_size){
     errno = 0;              //  automatically set when error occurs
     // open/create POSIX shared memory; if it doesn't exist, create one.
     int fd;
     fd = shm_open(name, O_RDWR, 0660);
     if (errno == ENOENT){
-        //fprintf(stdout, "[INFO] shared memory is intialized for the first time\n");
+        fprintf(stdout, "[INFO] shared memory is intialized for the first time\n");
         fd = shm_open(name, O_RDWR|O_CREAT, 0660);
+
+		// Init shm to have size of job_t struct
+		if (ftruncate(fd, init_size) != 0) {
+			perror("ftruncate");
+		}
     }
     if (fd == -1){
         perror("[Error] in shm_init: shm_open");
@@ -100,15 +103,10 @@ int get_shared_job(const char *name, job_t **save_job)
 {
 	// Get fd for shared memory region designated by name
     errno = 0;              //  automatically set when error occurs
-    int fd = shm_init(name);
+    int fd = shm_init(name, sizeof(job_t));
     if (fd == -1){
         perror("[Error] in get_shared_job: shm_init failed");
         return -1;
-    }
-
-	// Init shm to have size of job_t struct
-    if (ftruncate(fd, sizeof(job_t)) != 0) {
-        perror("ftruncate");
     }
 
 	// Mmap the job_t object stored in shared memory
@@ -181,18 +179,11 @@ int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
 
 	// Get fd for shared memory region designated
     errno = 0;              //  automatically set when error occurs
-    int fd = shm_init(job_shm_name);
+    int fd = shm_init(job_shm_name, sizeof(job_t));
     if (fd == -1){
         perror("[Error] in build_shared_job: shm_init failed");
         return -1;
     }
-
-	// Init job_t-sized shm object
-    if (ftruncate(fd, sizeof(job_t)) != 0) {
-		close(fd);
-        perror("ftruncate");
-    }
-
 
 	// Mmap the job_t object stored in shared memory
 	job_t *shm_job = (job_t *)

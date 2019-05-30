@@ -4,7 +4,7 @@ import functools
 from ctypes import cdll, c_uint, c_int, c_void_p, c_char_p, c_ulonglong, c_double, c_float, c_bool
 
 libc = cdll.LoadLibrary('libc.so.6')
-libpytag = cdll.LoadLibrary("libpytag.so")
+libpytag = cdll.LoadLibrary("libcarss.so")
 
 # Modify the res and argtypes of FrameController interface
 libpytag.CreateFrameControllerObj.restype = c_void_p
@@ -107,7 +107,7 @@ class FrameController(object):
             else:
                 return False 
 
-def tag_fn(fn, fc_obj, job_name, is_shareable):
+def frame_job_tag_fn(fn, fc_obj, job_name, is_shareable):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         # Using calling thread's tid, prepare wrapped FrameJob
@@ -151,7 +151,7 @@ def tag_forward_at_depth(m_obj, fc, is_shareable, tgt_depth, c_depth):
         # Wrap tagging routine for forward() function at this depth
         print("Wrapping tagging routine for forward() function of module: %s" % m_obj.__class__)
         old_fwd = m_obj.forward
-        new_fwd = tag_fn(old_fwd, fc, old_fwd.__name__ + "-depth"+str(c_depth), is_shareable)
+        new_fwd = frame_job_tag_fn(old_fwd, fc, old_fwd.__name__ + "-depth"+str(c_depth), is_shareable)
         m_obj.forward = new_fwd
 
     # Else, recursive case

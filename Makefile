@@ -3,7 +3,7 @@ GCC=gcc
 CXX=g++
 CUDAPATH?=/usr/local/cuda-10.0
 
-all: libmid.so libpytag.so libcuhook.so mid
+all: libmid.so libcarss.so libcuhook.so mid
 
 CPP_FLAGS=-std=c++11
 SHAREDFLAGS=-Wall -fPIC -shared -ldl -g -lrt
@@ -34,8 +34,8 @@ tag_state.o: tag_state.cpp
 tag_frame.o: tag_frame.cpp
 	$(CXX) $(INCL_FLAGS) $(CPP_FLAGS) $(MIDFLAGS) -o tag_frame.o tag_frame.cpp -c -fPIC
 
-libpytag.so: tag_state.o tag_lib.o tag_frame.o libmid.so
-	$(EDIT_LD_PATH) $(CXX) -shared -o lib/libpytag.so tag_state.o tag_lib.o tag_frame.o $(LOAD_MID)
+libcarss.so: tag_state.o tag_lib.o tag_frame.o libmid.so
+	$(EDIT_LD_PATH) $(CXX) -shared -o lib/libcarss.so tag_state.o tag_lib.o tag_frame.o $(LOAD_MID)
 
 test_mid.o: tests/test_mid.c tag_lib.o libmid.so
 	$(EDIT_LD_PATH) $(GCC) $(INCL_FLAGS) $(MIDFLAGS) -o tests/test_mid.o tests/test_mid.c tag_lib.o $(LOAD_MID)

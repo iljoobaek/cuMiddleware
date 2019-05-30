@@ -50,7 +50,7 @@ struct TagState {
 
 	// Request permission to run on GPU
 	// on success, starts the timer for job (specific to tid)
-	int acquire_gpu(pid_t tid, int64_t slacktime, bool first_flag, bool shareable_flag);
+	int acquire_gpu(pid_t tid, int64_t slacktime, bool noslack_flag, bool shareable_flag);
 	int release_gpu(pid_t tid);
 
 	/* Stats retrieval */
@@ -68,7 +68,7 @@ extern "C" {
 void *CreateTagStateObj(const meta_job_t *inp_init_meta_job); 
 void DestroyTagStateObj(void *tag_obj);
 meta_job_t *TagState_get_local_meta_job_for_tid(void *tag_obj, pid_t tid);
-int TagState_acquire_gpu(void *tag_obj, pid_t tid, int64_t slacktime, bool first_flag, bool shareable_flag);
+int TagState_acquire_gpu(void *tag_obj, pid_t tid, int64_t slacktime, bool noslack_flag, bool shareable_flag);
 int TagState_release_gpu(void *tag_obj, pid_t tid);
 int64_t TagState_get_wc_exec_time_for_tid(void *tag_obj, pid_t tid);
 int64_t TagState_get_max_wc_exec_time(void *tag_obj);

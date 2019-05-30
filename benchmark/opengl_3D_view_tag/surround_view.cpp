@@ -411,7 +411,7 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 
     // Tagging begin ///////////////////////////////////////////////////////////////////
     const char *task_1_name = "glGenTextures";
-    tag_job_begin(pid, tid, task_1_name, 14L, false, true, 0);
+    tag_job_begin(pid, tid, task_1_name, 14L, false, false, 0);
 
 	glGenTextures(1,&texture);
 	glBindTexture(GL_TEXTURE_2D,texture);
@@ -423,7 +423,7 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 
     // Tagging begin ///////////////////////////////////////////////////////////////////
     const char *task_2_name = "glTexImage2D";
-    tag_job_begin(pid, tid, task_2_name, 14L, false, true, 0);
+    tag_job_begin(pid, tid, task_2_name, 14L, false, false, 0);
 
 	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
 
@@ -439,7 +439,7 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 
     // Tagging begin ///////////////////////////////////////////////////////////////////
     const char *task_3_name = "glGenerateMipmap";
-    tag_job_begin(pid, tid, task_3_name, 14L, false, true, 0);
+    tag_job_begin(pid, tid, task_3_name, 14L, false, false, 0);
 
 	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
 

@@ -14,8 +14,8 @@
 #include <stdexcept> // std::runtime_error
 #include <string>
 
-#include "tag_state2.h" // TagState struct, gettid()
-#include "tag_gpu2.h" /* meta_job_t */
+#include "tag_state.h" // TagState struct, gettid()
+#include "tag_gpu.h" /* meta_job_t */
 #include "tag_frame.h" // FrameJob, FrameController
 #include "tag_exc.h" // AbortJob/DroppedFrameException
 

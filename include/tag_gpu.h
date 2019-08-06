@@ -15,8 +15,9 @@ typedef struct meta_job {
 	uint64_t avg_peak_mem;
 	uint64_t worst_peak_mem;
     int64_t last_exec_time; // Execution time in (us)
-   	int64_t avg_exec_time;
+	double avg_exec_time;
     int64_t worst_exec_time;
+    int64_t best_exec_time;
 	unsigned int run_count;
 
 	// running metadata fields
@@ -30,7 +31,7 @@ extern "C" {
 #endif
 void *CreateMetaJob(pid_t tid, const char *job_name,
 		uint64_t lpm, uint64_t apm, uint64_t wpm,
-		int64_t let, int64_t aet, int64_t wet,
+		int64_t let, double aet, int64_t wet, int64_t bet,
 		unsigned int run_count);
 void DestroyMetaJob(void *mj);
 #ifdef __cplusplus

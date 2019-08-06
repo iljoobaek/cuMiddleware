@@ -1,5 +1,6 @@
 #include <cstdio> /* fprintf */
 #include <cstring> /* memcpy */
+#include <iostream> /* std::endl, std::cout */
 #include <sys/types.h> /* pid_t */
 #include <stdint.h> // int64_t
 #include <mutex> /* std::unique_lock, std::mutex */
@@ -127,21 +128,34 @@ int TagState::release_gpu(pid_t call_tid) {
 
 	// Notify server of end of work
 	int res = tag_job_end(tag_pid, call_tid, curr_meta_job->job_name);
-	curr_meta_job->run_count++;
 
-	// Update tid's job execution time stats
+	// Update tid's job execution time stats:
+	// last_exec_time, worst_exec_time, avg_exec_time, best_exec_time
 	std::chrono::system_clock::time_point now_tp = std::chrono::high_resolution_clock::now();
 	std::chrono::microseconds us_now = std::chrono::duration_cast<std::chrono::microseconds>(now_tp.time_since_epoch());
 	int64_t job_end_us = us_now.count();
 	int64_t job_time_us = job_end_us - curr_meta_job->job_start_us;
-	if (job_time_us > curr_meta_job->worst_exec_time) {
+	unsigned int rc = curr_meta_job->run_count;
+	// Last execution time
+	curr_meta_job->last_exec_time = job_time_us;
+	// Worst execution time
+	if (!rc || job_time_us > curr_meta_job->worst_exec_time) {
 		curr_meta_job->worst_exec_time = job_time_us;
 	}
-	curr_meta_job->last_exec_time = job_time_us;
+	// Best execution time
+	if (!rc || job_time_us < curr_meta_job->best_exec_time) {
+		curr_meta_job->best_exec_time = job_time_us;
+	}
+	// Update avg execution time
+	double c_avg_exec_time = curr_meta_job->avg_exec_time;
+	curr_meta_job->avg_exec_time = \
+		   (c_avg_exec_time * rc + (double)(job_time_us))/(rc+1);
 
 	// TODO: Actually collect memory metrics intercepted from CUDA calls
 	curr_meta_job->worst_peak_mem = 1LU;
 
+	// Update the runcount
+	curr_meta_job->run_count++;
 	return res;
 }
 
@@ -179,6 +193,18 @@ int64_t TagState::get_required_mem_for_tid(pid_t tid) const {
 	return tid_to_meta_job.at(tid)->worst_peak_mem;
 }
 
+// Print execution timing stats for all threads
+void TagState::print_exec_stats() {
+	for (auto iter = tid_to_meta_job.begin(); iter != tid_to_meta_job.end(); ++iter) {
+		std::shared_ptr<meta_job_t> mj = iter->second;
+		std::cout << "EXEC_STATS: Tagged work (" << mj->job_name\
+			<< ", tid:" << mj->tid << ") -> "\
+			<< mj->best_exec_time << " us, " << mj->avg_exec_time << " us, "\
+			<< mj->worst_exec_time << " us (min, avg, max) over " << mj->run_count\
+			<< " runs for this thread." << std::endl;
+	}
+}
+
 
 /* Implement the C-exposed interface for TagState objects */
 #ifdef __cplusplus
@@ -214,6 +240,10 @@ int64_t TagState_get_max_wc_exec_time(void *tag_obj) {
 uint64_t TagState_get_required_mem_for_tid(void *tag_obj, pid_t tid) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
 	return ts->get_required_mem_for_tid(tid);
+}
+void TagState_print_exec_stats(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->print_exec_stats();
 }
 #ifdef __cplusplus
 }

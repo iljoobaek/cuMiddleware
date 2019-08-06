@@ -1,6 +1,7 @@
 #include <cstdio> /* fprintf */
 #include <cstring> /* memcpy */
 #include <deque> /* std::deque */
+#include <iostream> /* std::cout, std::endl */
 #include <sys/types.h> /* pid_t */
 #include <mutex> /* std::unique_lock, std::mutex */
 #include <chrono> /* std::chrono::high_resolution_clock::* */
@@ -46,6 +47,9 @@ int FrameJob::prepare_job(pid_t tid, int64_t slacktime, bool first_flag) {
 int FrameJob::release_job(pid_t tid) {
 	int res = job_state.release_gpu(tid);
 	return res;
+}
+void FrameJob::print_exec_stats() {
+	job_state.print_exec_stats();
 }
 
 
@@ -214,6 +218,14 @@ int FrameController::release_job_by_id(int job_id, pid_t tid) {
 	std::shared_ptr<FrameJob> fj = frame_jobs[job_id];
 	return fj->release_job(tid);
 }
+void FrameController::print_exec_stats() {
+	// Loop over all FrameJobs to update () for each
+	std::cout << "EXEC_STATS: FrameController (" << task_name << ") exec stats:" << std::endl;
+	for (int i=0; i< (long int)frame_jobs.size(); i++) {
+		FrameJob *fji = frame_jobs[i].get();
+		fji->print_exec_stats();
+	}
+}
 
 /*
 * Slack-time computation at runtime relative to current absolute deadline
@@ -288,7 +300,10 @@ int FrameController_release_job_by_id(void *fc_obj, int job_id, pid_t tid) {
 	FrameController *fc = reinterpret_cast<FrameController *>(fc_obj);
 	return fc->release_job_by_id(job_id, tid);
 }
-
+void FrameController_print_exec_stats(void *fc_obj) {
+	FrameController *fc = reinterpret_cast<FrameController *>(fc_obj);
+	return fc->print_exec_stats();
+}
 #ifdef __cplusplus
 }
 #endif 

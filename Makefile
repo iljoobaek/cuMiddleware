@@ -3,7 +3,7 @@ GCC=gcc
 CXX=g++
 CUDAPATH?=/usr/local/cuda-10.0
 
-all: libmid.so libcarss.so libcuhook.so mid
+all: libmid.so libcarss.so mid
 
 CPP_FLAGS=-std=c++11
 SHAREDFLAGS=-Wall -fPIC -shared -ldl -g -lrt

@@ -8,9 +8,9 @@ libpytag = cdll.LoadLibrary("libcarss.so")
 
 # Modify the res and argtypes of *MetaJob interface
 libpytag.CreateMetaJob.restype = c_void_p
-libpytag.CreateMetaJob.argtypes = [c_uint, c_char_p, 
+libpytag.CreateMetaJob.argtypes = [c_uint, c_char_p,
                 c_ulonglong, c_ulonglong, c_ulonglong,
-                c_double, c_double, c_double,
+                c_longlong, c_double, c_longlong, c_longlong,
                 c_uint]
 libpytag.DestroyMetaJob.restype = None
 libpytag.DestroyMetaJob.argtypes = [c_void_p]
@@ -20,7 +20,7 @@ libpytag.CreateTagStateObj.restype = c_void_p
 libpytag.CreateTagStateObj.argtypes = [c_void_p]
 
 libpytag.DestroyTagStateObj.restype = None
-libpytag.DestroyTagStateObj.argtypes = [c_void_p] 
+libpytag.DestroyTagStateObj.argtypes = [c_void_p]
 
 libpytag.TagState_acquire_gpu.restype = c_int
 libpytag.TagState_acquire_gpu.argtypes = [c_void_p, c_int, c_longlong,
@@ -38,26 +38,31 @@ libpytag.TagState_get_max_wc_exec_time.argtypes = [c_void_p]
 libpytag.TagState_get_required_mem_for_tid.restype = c_ulonglong
 libpytag.TagState_get_required_mem_for_tid.argtypes = [c_void_p, c_int]
 
+libpytag.TagState_print_exec_stats.restype = None
+libpytag.TagState_print_exec_stats.argtypes = [c_void_p]
+
 def gettid():
     SYS_gettid = 186 # SYS_gettid
     return libc.syscall(SYS_gettid)
 
+
 class MetaJobStruct(object):
     def __init__(self, tid, job_name,
-            lpm=0, apm=0, wpm=0,
-            let=0, aet=0, wet=0,
-            run_count=0):
+                 lpm=0, apm=0, wpm=0,
+                 let=0, aet=0.0, wet=0, bet=0,
+                 run_count=0):
         # Ensure that string is in bytes before passing as c_char_p
         c_name = c_char_p(job_name.encode('utf-8'))
 
         self.mj = c_void_p(
                     libpytag.CreateMetaJob(tid, c_name,
-                    lpm, apm, wpm, let, aet, wet,
+                    lpm, apm, wpm, let, aet, wet, bet,
                     run_count)
                     )
 
     def __del__(self):
         libpytag.DestroyMetaJob(self.mj)
+
 
 class TagStateStruct(object):
     def __init__(self, init_meta_job_struct):
@@ -92,6 +97,9 @@ class TagStateStruct(object):
     def get_required_mem_for_tid(self, tid):
         tid = c_int(tid)
         return c_ulonglong(libpytag.TagState_get_required_mem_for_tid(self.ts, tid)).value
+
+    def print_exec_stats(self):
+        libpytag.TagState_print_exec_stats(self.ts)
 
 
 def excl_tag_fn(fn, name):
@@ -236,3 +244,8 @@ if __name__ == "__main__":
     work("Hello world!")
     work("Hello world!")
     work("Hello world!")
+
+
+    # The wrapped function has a TagState object of its own, which collects
+    # the execution stats and can print these in a summary
+    work.ts.print_exec_stats()

@@ -58,6 +58,7 @@ struct TagState {
 	int64_t get_wc_exec_time_for_tid(pid_t tid) const ;  // Returns -1 if not yet known
 	int64_t get_max_wc_exec_time() const;				// Returns -1 if not yet known
 	int64_t get_required_mem_for_tid(pid_t tid) const; // Returns -1 if not yet known
+	void print_exec_stats();
 };
 #endif
 
@@ -73,6 +74,7 @@ int TagState_release_gpu(void *tag_obj, pid_t tid);
 int64_t TagState_get_wc_exec_time_for_tid(void *tag_obj, pid_t tid);
 int64_t TagState_get_max_wc_exec_time(void *tag_obj);
 uint64_t TagState_get_required_mem_for_tid(void *tag_obj, pid_t tid);
+void TagState_print_exec_stats(void *tag_obj);
 #ifdef __cplusplus
 }
 #endif

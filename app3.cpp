@@ -9,7 +9,7 @@
 // Work functions must NOT be of return-type void
 int app3_work1() {
 	fprintf(stderr, "Work1\n");
-	usleep(10000);
+	usleep(10000); // 10ms
 	return 0;
 }
 

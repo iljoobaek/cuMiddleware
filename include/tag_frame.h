@@ -43,6 +43,8 @@ struct FrameJob {
 	// On success, starts timer for TagState object
 	int prepare_job(pid_t tid, int64_t slacktime, bool first_flag);
 	int release_job(pid_t tid);
+
+	void print_exec_stats();
 };
 #endif
 
@@ -109,6 +111,7 @@ struct FrameController {
 	// Returns 0 on successfully releasing GPU for job
 	int release_job_by_id(int job_id, pid_t tid);
 
+	void print_exec_stats();
 	private:
 		/*
 		 * Slack-time computation at runtime relative to current absolute deadline (in us)
@@ -134,6 +137,7 @@ void FrameController_frame_start(void *fc_obj);
 void FrameController_frame_end(void *fc_obj);
 int FrameController_prepare_job_by_id(void *fc_obj, int job_id, pid_t tid);
 int FrameController_release_job_by_id(void *fc_obj, int job_id, pid_t tid);
+void FrameController_print_exec_stats(void *fc_obj);
 #ifdef __cplusplus
 }
 #endif

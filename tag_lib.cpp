@@ -31,7 +31,7 @@ extern "C" {
 /* Implement interface for meta_job struct */
 void *CreateMetaJob(pid_t tid, const char *job_name,
 		uint64_t lpm, uint64_t apm, uint64_t wpm,
-		int64_t let, int64_t aet, int64_t wet,
+		int64_t let, double aet, int64_t wet, int64_t bet,
 		unsigned int run_count) {
 	meta_job_t *mj = (meta_job_t *)calloc(1, sizeof (meta_job_t));
 	mj->tid = tid;
@@ -42,6 +42,7 @@ void *CreateMetaJob(pid_t tid, const char *job_name,
 	mj->last_exec_time = let;
 	mj->avg_exec_time = aet;
 	mj->worst_exec_time = wet;
+	mj->best_exec_time = bet;
 	mj->run_count = run_count;
 
 	return (void *)mj;

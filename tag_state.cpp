@@ -193,14 +193,95 @@ int64_t TagState::get_required_mem_for_tid(pid_t tid) const {
 	return tid_to_meta_job.at(tid)->worst_peak_mem;
 }
 
+int64_t TagState::get_best_exec_time_for_tid(pid_t tid) const {
+	auto it = tid_to_meta_job.find(tid);
+	if (it == tid_to_meta_job.end()) {
+		return -1;
+	} else if (tid_to_meta_job.at(tid)->best_exec_time == 0) {
+		return -1;
+	}
+	return tid_to_meta_job.at(tid)->best_exec_time;
+}
+
+int64_t TagState::get_overall_best_exec_time() const {
+	int64_t bet = -1;
+	for (auto iter = tid_to_meta_job.begin(); iter != tid_to_meta_job.end(); ++iter) {
+		std::shared_ptr<meta_job_t> mj = iter->second;
+		if (bet == -1 || mj->best_exec_time < bet) {
+			bet = mj->best_exec_time;
+		}
+	}
+	return bet;
+}
+
+int64_t TagState::get_worst_exec_time_for_tid(pid_t tid) const {
+	auto it = tid_to_meta_job.find(tid);
+	if (it == tid_to_meta_job.end()) {
+		return -1;
+	} else if (tid_to_meta_job.at(tid)->worst_exec_time == 0) {
+		return -1;
+	}
+	return tid_to_meta_job.at(tid)->worst_exec_time;
+}
+
+int64_t TagState::get_overall_worst_exec_time() const {
+	int64_t wet = -1;
+	for (auto iter = tid_to_meta_job.begin(); iter != tid_to_meta_job.end(); ++iter) {
+		std::shared_ptr<meta_job_t> mj = iter->second;
+		if (wet == -1 || mj->worst_exec_time > wet) {
+			wet = mj->worst_exec_time;
+		}
+	}
+	return wet;
+}
+
+int64_t TagState::get_last_exec_time_for_tid(pid_t tid) const {
+	auto it = tid_to_meta_job.find(tid);
+	if (it == tid_to_meta_job.end()) {
+		return -1;
+	} else if (tid_to_meta_job.at(tid)->last_exec_time == 0) {
+		return -1;
+	}
+	return tid_to_meta_job.at(tid)->last_exec_time;
+}
+
+double TagState::get_avg_exec_time_for_tid(pid_t tid) const {
+	auto it = tid_to_meta_job.find(tid);
+	if (it == tid_to_meta_job.end()) {
+		return -1;
+	} else if (tid_to_meta_job.at(tid)->avg_exec_time == 0.0) {
+		return -1;
+	}
+	return tid_to_meta_job.at(tid)->avg_exec_time;
+}
+
+double TagState::get_overall_avg_exec_time() const {
+	// Average all tid's avg_exec_times (weighted by runcounts)
+	double aet = -1.0;
+	int tot_count = 0;
+	for (auto iter = tid_to_meta_job.begin(); iter != tid_to_meta_job.end(); ++iter) {
+		std::shared_ptr<meta_job_t> mj = iter->second;
+		if (mj->avg_exec_time>= 0.0) {
+			if (aet == -1) {
+				// Initialize aet before aggregation 
+				aet = 0.0;
+			}
+			aet += mj->avg_exec_time * mj->run_count;
+		}
+		tot_count+=mj->run_count;
+	}
+	aet = aet / (double)tot_count;
+	return aet;
+}
+
 // Print execution timing stats for all threads
 void TagState::print_exec_stats() {
 	for (auto iter = tid_to_meta_job.begin(); iter != tid_to_meta_job.end(); ++iter) {
 		std::shared_ptr<meta_job_t> mj = iter->second;
 		std::cout << "EXEC_STATS: Tagged work (" << mj->job_name\
 			<< ", tid:" << mj->tid << ") -> "\
-			<< mj->best_exec_time << " us, " << mj->avg_exec_time << " us, "\
-			<< mj->worst_exec_time << " us (min, avg, max) over " << mj->run_count\
+			<< mj->best_exec_time << "us, " << mj->avg_exec_time << " us, "\
+			<< mj->worst_exec_time << "us (min, avg, max) over " << mj->run_count\
 			<< " runs for this thread." << std::endl;
 	}
 }

@@ -58,6 +58,13 @@ struct TagState {
 	int64_t get_wc_exec_time_for_tid(pid_t tid) const ;  // Returns -1 if not yet known
 	int64_t get_max_wc_exec_time() const;				// Returns -1 if not yet known
 	int64_t get_required_mem_for_tid(pid_t tid) const; // Returns -1 if not yet known
+	int64_t get_best_exec_time_for_tid(pid_t tid) const; // Returns -1 if not yet known
+	int64_t get_worst_exec_time_for_tid(pid_t tid) const; // Returns -1 if not yet known
+	int64_t get_last_exec_time_for_tid(pid_t tid) const; // Returns -1 if not yet known
+	double get_avg_exec_time_for_tid(pid_t tid) const; // Returns -1 if not yet known
+	int64_t get_overall_best_exec_time() const; // Returns -1 if not yet known
+	int64_t get_overall_worst_exec_time() const; // Returns -1 if not yet known
+	double get_overall_avg_exec_time() const; // Returns -1 if not yet known
 	void print_exec_stats();
 };
 #endif

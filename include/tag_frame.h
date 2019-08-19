@@ -32,6 +32,9 @@ struct FrameJob {
 	int64_t get_wc_remaining_exec_time();
 	int64_t get_expected_exec_time_for_tid(pid_t tid);
 	uint64_t get_expected_required_mem_for_tid(pid_t tid);
+	int64_t get_overall_best_exec_time() const;
+	int64_t get_overall_worst_exec_time() const;
+	double get_overall_avg_exec_time() const;
 
 	/* Sample wc_exec_time */
 	// This is run every N
@@ -84,6 +87,10 @@ struct FrameController {
 	std::chrono::microseconds desired_frame_drn_us;
 	long int frame_start_us;			// Most recent frame start time (us)
 	long int frame_deadline_us;			// Most recent frame deadline (us)
+	int64_t last_drn_us;				// Most recent frame duration (us), -1 if uninit
+	int64_t best_frame_us;				// Min frame duration (us), -1 if uninit
+	int64_t worst_frame_us;				// Max frame duration (us), -1 if uninit
+	double avg_frame_us;				// Avg frame duration (us), -1 if uninit
 	unsigned int runcount;
 	std::mutex ctrl_lock;
 

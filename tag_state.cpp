@@ -245,6 +245,18 @@ int64_t TagState::get_last_exec_time_for_tid(pid_t tid) const {
 	return tid_to_meta_job.at(tid)->last_exec_time;
 }
 
+int64_t TagState::get_worst_last_exec_time() const {
+	// Loop over all threads' last exec time, return worst
+	int64_t ret = -1;
+	for (auto iter = tid_to_meta_job.begin(); iter != tid_to_meta_job.end(); ++iter) {
+		std::shared_ptr<meta_job_t> mj = iter->second;
+		if (ret == -1 || ret < mj->last_exec_time) {
+			ret = mj->last_exec_time;
+		}
+	}
+	return ret;
+}
+
 double TagState::get_avg_exec_time_for_tid(pid_t tid) const {
 	auto it = tid_to_meta_job.find(tid);
 	if (it == tid_to_meta_job.end()) {

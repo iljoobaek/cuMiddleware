@@ -49,6 +49,10 @@ int FrameJob::release_job(pid_t tid) {
 	return res;
 }
 
+int64_t FrameJob::get_worst_last_exec_time() const {
+	return job_state.get_worst_last_exec_time();
+}
+
 int64_t FrameJob::get_overall_best_exec_time() const {
 	return job_state.get_overall_best_exec_time();
 }
@@ -118,7 +122,9 @@ FrameController::FrameController(const char *_frame_task_name, float _desired_fp
 		bool _allow_frame_drop) \
 	: task_name(_frame_task_name), desired_fps(_desired_fps), allow_frame_drop(_allow_frame_drop),
 	frame_start_us(0L), frame_deadline_us(0L), 
-	last_drn_us(-1L), best_frame_us(-1L), worst_frame_us(-1L), avg_frame_us(-1.0),
+	last_drn_us(-1L), last_cpu_exec_time (-1L), max_cpu_exec_time(-1L), min_cpu_exec_time(-1L),
+	avg_cpu_exec_time(-1.0),
+   	best_frame_us(-1L), worst_frame_us(-1L), avg_frame_us(-1.0),
 	runcount(0) {
 	if (desired_fps <= 0.0) {
 		throw std::invalid_argument("Bad desired FPS, must be non-negative!");
@@ -176,6 +182,9 @@ void FrameController::frame_end() {
 	std::chrono::microseconds frame_drn_us(us_now.count() - frame_start_us);
 
 	int64_t frame_us = frame_drn_us.count();
+	double real_fps = 1.0 / (double)(frame_us / MICROS_PER_SECOND);
+	fprintf(stderr, "Frame frame duration: %ld us, frame FPS %lf\n",
+			frame_us, real_fps);
 
 	// Update bookkeeping of frame times
 	last_drn_us = frame_us;
@@ -187,9 +196,24 @@ void FrameController::frame_end() {
 	}
 	avg_frame_us = (avg_frame_us * runcount + (double)frame_us) / (runcount+1);
 
-	double real_fps = 1.0 / (double)(frame_us / MICROS_PER_SECOND);
-	fprintf(stderr, "Frame frame duration: %ld us, frame FPS %lf\n",
-			frame_us, real_fps);
+	// Update estimates of CPU exec time for this frame
+	// Loop over all FrameJobs to update () for each
+	int64_t tot_gpu_exec_time = 0;
+	for (int i=0; i< (long int)frame_jobs.size(); i++) {
+		FrameJob *fji = frame_jobs[i].get();
+		tot_gpu_exec_time += fji->get_worst_last_exec_time();
+	}
+	last_cpu_exec_time = last_drn_us - tot_gpu_exec_time;
+	if (max_cpu_exec_time == -1 || max_cpu_exec_time < last_cpu_exec_time) {
+		max_cpu_exec_time = last_cpu_exec_time;
+		if (max_cpu_exec_time > 20000) {
+			std::cout << "Big max cpu: " << last_drn_us << ", " << tot_gpu_exec_time << std::endl;
+		}
+	}
+	if (min_cpu_exec_time == -1 || min_cpu_exec_time > last_cpu_exec_time) {
+		min_cpu_exec_time = last_cpu_exec_time;
+	}
+	avg_cpu_exec_time = (avg_cpu_exec_time * runcount + (double)last_cpu_exec_time) / (runcount+1);
 
 	// Every sampling period, sample the wc execution metrics
 	if (runcount % SAMPLE_WC_PERIOD == 0) {
@@ -264,14 +288,9 @@ void FrameController::print_exec_stats() {
 			<< fji->get_overall_worst_exec_time() << "us" << std::endl;
 	}
 	// Compute host execution time from total frame duration and gpu execution
-	// TODO: needs a bookkeeping variable for each frame, can't be computed
-	int64_t host_min_exec_time = last_drn_us - tot_max_exec_time;
-	int64_t host_max_exec_time = last_drn_us - tot_min_exec_time;
-	double host_avg_exec_time = last_drn_us - tot_avg_exec_time;
-
 	std::cout << "Execution time only on CPU (min, avg, max): \t\t\t"\
-		<< host_min_exec_time << "us, " << host_avg_exec_time << "us, " \
-		<< host_max_exec_time << "us" << std::endl;
+		<< min_cpu_exec_time << "us, " << avg_cpu_exec_time << "us, " \
+		<< max_cpu_exec_time << "us" << std::endl;
 
 	std::cout << "Total frame execution time (last, min, avg, max): \t\t"\
 		<< last_drn_us << "us, " << best_frame_us << "us, " << avg_frame_us << "us, "\

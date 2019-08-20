@@ -35,6 +35,7 @@ struct FrameJob {
 	int64_t get_overall_best_exec_time() const;
 	int64_t get_overall_worst_exec_time() const;
 	double get_overall_avg_exec_time() const;
+	int64_t get_worst_last_exec_time() const;
 
 	/* Sample wc_exec_time */
 	// This is run every N
@@ -88,6 +89,11 @@ struct FrameController {
 	long int frame_start_us;			// Most recent frame start time (us)
 	long int frame_deadline_us;			// Most recent frame deadline (us)
 	int64_t last_drn_us;				// Most recent frame duration (us), -1 if uninit
+	int64_t last_cpu_exec_time;			// Most recent frame cpu exec time (us), -1 if uninit
+	int64_t max_cpu_exec_time;			// Max frame cpu exec time (us), -1 if uninit
+	int64_t min_cpu_exec_time;			// Min frame cpu exec time (us), -1 if uninit
+	double avg_cpu_exec_time;			// Avg frame cpu exec time (us), -1 if uninit
+
 	int64_t best_frame_us;				// Min frame duration (us), -1 if uninit
 	int64_t worst_frame_us;				// Max frame duration (us), -1 if uninit
 	double avg_frame_us;				// Avg frame duration (us), -1 if uninit

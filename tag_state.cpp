@@ -334,6 +334,38 @@ uint64_t TagState_get_required_mem_for_tid(void *tag_obj, pid_t tid) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
 	return ts->get_required_mem_for_tid(tid);
 }
+int64_t TagState_get_best_exec_time_for_tid(void *tag_obj, pid_t tid) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_best_exec_time_for_tid(tid);
+}
+int64_t TagState_get_worst_exec_time_for_tid(void *tag_obj, pid_t tid) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_worst_exec_time_for_tid(tid);
+}
+int64_t TagState_get_last_exec_time_for_tid(void *tag_obj, pid_t tid) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_last_exec_time_for_tid(tid);
+}
+int64_t TagState_get_worst_last_exec_time(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_worst_last_exec_time();
+}
+double TagState_get_avg_exec_time_for_tid(void *tag_obj, pid_t tid) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_avg_exec_time_for_tid(tid);
+}
+int64_t TagState_get_overall_best_exec_time(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_overall_best_exec_time();
+}
+int64_t TagState_get_overall_worst_exec_time(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_overall_worst_exec_time();
+}
+double TagState_get_overall_avg_exec_time(void *tag_obj) {
+	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
+	return ts->get_overall_avg_exec_time();
+}
 void TagState_print_exec_stats(void *tag_obj) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
 	return ts->print_exec_stats();

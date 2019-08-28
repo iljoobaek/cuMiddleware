@@ -26,10 +26,14 @@ libpytag.FrameController_unregister_frame_job.restype = c_int
 libpytag.FrameController_unregister_frame_job.argtypes = [c_void_p, c_int]
 
 libpytag.FrameController_prepare_job_by_id.restype = c_int
-libpytag.FrameController_prepare_job_by_id.argtypes = [c_void_p, c_int, c_int];
+libpytag.FrameController_prepare_job_by_id.argtypes = [c_void_p, c_int, c_int]
 
 libpytag.FrameController_release_job_by_id.restype = c_int
-libpytag.FrameController_release_job_by_id.argtypes = [c_void_p, c_int, c_int];
+libpytag.FrameController_release_job_by_id.argtypes = [c_void_p, c_int, c_int]
+
+libpytag.FrameController_print_exec_stats.restype = None
+libpytag.FrameController_print_exec_stats.argtypes = [c_void_p]
+
 
 def gettid():
     SYS_gettid = 186 # SYS_gettid
@@ -76,6 +80,9 @@ class FrameController(object):
         fj_id = c_int(fj_id)
         tid = c_int(tid)
         return libpytag.FrameController_release_job_by_id(self.fc, fj_id, tid)
+
+    def print_exec_stats(self):
+        return libpytag.FrameController_print_exec_stats(self.fc)
 
     @classmethod
     def frame_context(cls, fc):
@@ -173,7 +180,4 @@ if __name__ == "__main__":
     fc = FrameController("dummy", 25.0, False)
     fc.frame_start()
     fc.frame_end()
-
-    
-
-
+    fc.print_exec_stats()

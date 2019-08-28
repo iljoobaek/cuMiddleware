@@ -38,6 +38,31 @@ libpytag.TagState_get_max_wc_exec_time.argtypes = [c_void_p]
 libpytag.TagState_get_required_mem_for_tid.restype = c_ulonglong
 libpytag.TagState_get_required_mem_for_tid.argtypes = [c_void_p, c_int]
 
+libpytag.TagState_get_best_exec_time_for_tid.restype = c_longlong
+libpytag.TagState_get_best_exec_time_for_tid.argtypes = [c_void_p, c_int]
+
+libpytag.TagState_get_worst_exec_time_for_tid.restype = c_longlong
+libpytag.TagState_get_worst_exec_time_for_tid.argtypes = [c_void_p, c_int]
+
+libpytag.TagState_get_last_exec_time_for_tid.restype = c_longlong
+libpytag.TagState_get_last_exec_time_for_tid.argtypes = [c_void_p, c_int]
+
+libpytag.TagState_get_worst_last_exec_time.restype = c_longlong
+libpytag.TagState_get_worst_last_exec_time.argtypes = [c_void_p]
+
+libpytag.TagState_get_avg_exec_time_for_tid.restype = c_double 
+libpytag.TagState_get_avg_exec_time_for_tid.argtypes = [c_void_p, c_int]
+
+
+libpytag.TagState_get_overall_best_exec_time.restype = c_longlong
+libpytag.TagState_get_overall_best_exec_time.argtypes = [c_void_p]
+
+libpytag.TagState_get_overall_worst_exec_time.restype = c_longlong
+libpytag.TagState_get_overall_worst_exec_time.argtypes = [c_void_p]
+
+libpytag.TagState_get_overall_avg_exec_time.restype = c_double 
+libpytag.TagState_get_overall_avg_exec_time.argtypes = [c_void_p]
+
 libpytag.TagState_print_exec_stats.restype = None
 libpytag.TagState_print_exec_stats.argtypes = [c_void_p]
 
@@ -97,6 +122,34 @@ class TagStateStruct(object):
     def get_required_mem_for_tid(self, tid):
         tid = c_int(tid)
         return c_ulonglong(libpytag.TagState_get_required_mem_for_tid(self.ts, tid)).value
+
+    def get_best_exec_time_for_tid(self, tid):
+        tid = c_int(tid)
+        return c_longlong(libpytag.TagState_get_best_exec_time_for_tid(self.ts, tid)).value
+
+    def get_worst_exec_time_for_tid(self, tid):
+        tid = c_int(tid)
+        return c_longlong(libpytag.TagState_get_worst_exec_time_for_tid(self.ts, tid)).value
+
+    def get_last_exec_time_for_tid(self, tid):
+        tid = c_int(tid)
+        return c_longlong(libpytag.TagState_get_last_exec_time_for_tid(self.ts, tid)).value
+
+    def get_worst_last_exec_time(self):
+        return c_longlong(libpytag.TagState_get_worst_last_exec_time(self.ts)).value
+
+    def get_avg_exec_time_for_tid(self, tid):
+        tid = c_int(tid)
+        return c_double(libpytag.TagState_get_avg_exec_time_for_tid(self.ts, tid)).value
+
+    def get_overall_best_exec_time(self):
+        return c_longlong(libpytag.TagState_get_overall_best_exec_time(self.ts)).value
+
+    def get_overall_worst_exec_time(self):
+        return c_longlong(libpytag.TagState_get_overall_worst_exec_time(self.ts)).value
+
+    def get_overall_avg_exec_time(self):
+        return c_double(libpytag.TagState_get_overall_avg_exec_time(self.ts)).value
 
     def print_exec_stats(self):
         libpytag.TagState_print_exec_stats(self.ts)
@@ -248,4 +301,5 @@ if __name__ == "__main__":
 
     # The wrapped function has a TagState object of its own, which collects
     # the execution stats and can print these in a summary
+    print ("Best exec time:", work.ts.get_overall_best_exec_time())
     work.ts.print_exec_stats()

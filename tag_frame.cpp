@@ -108,6 +108,30 @@ int FrameJob_release_job(void *fj_obj, pid_t tid) {
 	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
 	return fj->release_job(tid);
 }
+int64_t FrameJob_get_worst_last_exec_time(void *fj_obj) {
+	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
+	return fj->get_worst_last_exec_time();
+}
+
+int64_t FrameJob_get_overall_best_exec_time(void *fj_obj) {
+	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
+	return fj->get_overall_best_exec_time();
+}
+
+int64_t FrameJob_get_overall_worst_exec_time(void *fj_obj) {
+	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
+	return fj->get_overall_worst_exec_time();
+}
+
+double FrameJob_get_overall_avg_exec_time(void *fj_obj) {
+	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
+	return fj->get_overall_avg_exec_time();
+}
+
+void FrameJob_print_exec_stats(void *fj_obj) {
+	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
+	fj->print_exec_stats();
+}
 #ifdef __cplusplus
 }
 #endif 
@@ -124,7 +148,7 @@ FrameController::FrameController(const char *_frame_task_name, float _desired_fp
 	frame_start_us(0L), frame_deadline_us(0L), 
 	last_drn_us(-1L), last_cpu_exec_time (-1L), max_cpu_exec_time(-1L), min_cpu_exec_time(-1L),
 	avg_cpu_exec_time(-1.0),
-   	best_frame_us(-1L), worst_frame_us(-1L), avg_frame_us(-1.0),
+	best_frame_us(-1L), worst_frame_us(-1L), avg_frame_us(-1.0),
 	runcount(0) {
 	if (desired_fps <= 0.0) {
 		throw std::invalid_argument("Bad desired FPS, must be non-negative!");
@@ -206,9 +230,6 @@ void FrameController::frame_end() {
 	last_cpu_exec_time = last_drn_us - tot_gpu_exec_time;
 	if (max_cpu_exec_time == -1 || max_cpu_exec_time < last_cpu_exec_time) {
 		max_cpu_exec_time = last_cpu_exec_time;
-		if (max_cpu_exec_time > 20000) {
-			std::cout << "Big max cpu: " << last_drn_us << ", " << tot_gpu_exec_time << std::endl;
-		}
 	}
 	if (min_cpu_exec_time == -1 || min_cpu_exec_time > last_cpu_exec_time) {
 		min_cpu_exec_time = last_cpu_exec_time;

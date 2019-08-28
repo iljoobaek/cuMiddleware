@@ -65,6 +65,11 @@ void FrameJob_update_wc_exec_time(void *fj_obj);
 void FrameJob_set_wc_remaining_exec_time(void *fj_obj, int64_t rem_exec_time);
 int FrameJob_prepare_job(void *fj_obj, pid_t tid, int64_t slacktime, bool first_flag);
 int FrameJob_release_job(void *fj_obj, pid_t tid);
+int64_t FrameJob_get_worst_last_exec_time(void *fj_obj);
+int64_t FrameJob_get_overall_best_exec_time(void *fj_obj);
+int64_t FrameJob_get_overall_worst_exec_time(void *fj_obj);
+double FrameJob_get_overall_avg_exec_time(void *fj_obj);
+void FrameJob_print_exec_stats(void *fj_obj);
 #ifdef __cplusplus
 }
 #endif

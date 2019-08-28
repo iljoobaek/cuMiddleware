@@ -83,6 +83,16 @@ int TagState_release_gpu(void *tag_obj, pid_t tid);
 int64_t TagState_get_wc_exec_time_for_tid(void *tag_obj, pid_t tid);
 int64_t TagState_get_max_wc_exec_time(void *tag_obj);
 uint64_t TagState_get_required_mem_for_tid(void *tag_obj, pid_t tid);
+
+int64_t TagState_get_best_exec_time_for_tid(void *tag_obj, pid_t tid);
+int64_t TagState_get_worst_exec_time_for_tid(void *tag_obj, pid_t tid);
+int64_t TagState_get_last_exec_time_for_tid(void *tag_obj, pid_t tid);
+int64_t TagState_get_worst_last_exec_time(void *tag_obj);
+double TagState_get_avg_exec_time_for_tid(void *tag_obj, pid_t tid);
+
+int64_t TagState_get_overall_best_exec_time(void *tag_obj);
+int64_t TagState_get_overall_worst_exec_time(void *tag_obj);
+double TagState_get_overall_avg_exec_time(void *tag_obj);
 void TagState_print_exec_stats(void *tag_obj);
 #ifdef __cplusplus
 }

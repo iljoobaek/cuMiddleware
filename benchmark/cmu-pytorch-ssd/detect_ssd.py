@@ -146,6 +146,9 @@ for image_path in TEST_IMAGE_PATHS:
    # if cv2.waitKey(1) & 0xFF == ord('q'):
    #     break
 
+# Print summary of execution stats
+fc.print_exec_stats()
+
 cv2.destroyAllWindows()
 print('-'*60+'\nAverage FPS:', tot_fps / len(TEST_IMAGE_PATHS))
 if tenth_flag < 0 and enable_prof:

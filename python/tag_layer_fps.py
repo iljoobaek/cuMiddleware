@@ -47,6 +47,7 @@ class DroppedFrameException(Exception):
 
 class FrameController(object):
     def __init__(self, frame_name, desired_fps, allow_frame_drop):
+        self.frame_name = frame_name
         frame_name = c_char_p(frame_name.encode('utf8'))
         desired_fps = c_float(desired_fps)
         allow_frame_drop = c_bool(allow_frame_drop)
@@ -165,6 +166,14 @@ def tag_forward_at_depth(m_obj, fc, is_shareable, tgt_depth, c_depth):
     for child_mod in m_obj.children():
         tag_forward_at_depth(child_mod, fc, is_shareable, tgt_depth, c_depth+1)
     return
+
+def tag_tf_session_run(fc, is_shareable):
+    # Make a frame-job for 'fc' out of tf.Session.run fn
+    import tensorflow as tf
+    print("Wrapping Tensorflow's Session.run() as frame-job for fc (%s)" % fc.frame_name)
+    old_fwd = tf.Session.run
+    tf.Session.run = frame_job_tag_fn(old_fwd, fc, old_fwd.__name__ + 'tagged' , is_shareable)
+
 
 def tag_pt_module_layers_at_depth(m_obj, fc, is_shareable, tgt_depth=-1):
     '''

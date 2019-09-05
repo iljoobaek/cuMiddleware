@@ -10,6 +10,7 @@ sys.path.append(slim_path)
 import cv2
 import tensorflow as tf
 import numpy as np
+import argparse
 
 from google.protobuf import text_format
 from object_detection.builders import model_builder
@@ -234,9 +235,6 @@ if __name__ == '__main__':
     parse.add_argument("--fps", dest="fps", default=-1, help="Enable fps control with tagging at desired fps [default -1, disabled]")
     args = parse.parse_args()
 
-    net_type = args.net
-    model_path = args.model_path
-    label_path = args.label_path
     fps = args.fps
     tagging_enabled = False
     if str(fps) == "-1":
@@ -254,7 +252,7 @@ if __name__ == '__main__':
     #######
     # To enable frame-job tagging of SSD Tensorflow's Session.run() function
     if tagging_enabled:
-        sys.path.append("/home/mastaflow/cuMiddleware/python")
+        sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
         import tag_layer_fps
         allow_frame_drop = False
         fc = tag_layer_fps.FrameController("Tensorflow 1.0 SSD", fps, allow_frame_drop)
@@ -269,29 +267,12 @@ if __name__ == '__main__':
         './train_kitti_mot_lisa_bdd_distort_color_focal_loss_300k/kitti_mot_bdd100k_lisaExtended2Coco_(train).tfrecord.pbtxt')
     detector = ObjectDetector(checkpoint_path, pipeline_config_path, label_map_path,
         network_size = None)
-    video_path=os.path.join(dirname,
-        './videos/kitti.mp4')
-    cap = cv2.VideoCapture(video_path)
-    frame_ctr = 0
-    time_start = time.time()
     
-    # Init profiler
-    profiler = tf.profiler.Profiler(detector._sess.graph)
-    sample_rate = 10    # Every 10 frames will be profiled
-    cnt = 0
-
-    while(True):
+    for imgpath in TEST_IMAGE_PATHS:
         if tagging_enabled:
             fc.frame_start()
 
-        profile_flag = False
-        if (cnt % sample_rate == 0):
-            profile_flag = True
-            profile_flag = False # TODO
-
-        _, img = cap.read()
-        if img is None:
-            break
+        img = cv2.imread(imgpath, cv2.IMREAD_COLOR)
         #crop ROI
         crop_height = 300
         crop_width = 1280
@@ -309,38 +290,11 @@ if __name__ == '__main__':
         cv2.putText(img, '{:s}'.format('ROI normal (300)'),
             (crop_xmin, crop_ymin+30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),2)
 
-        run_meta = detector.detect(img_crop, profile_flag)
-
-        # Process run_meta if profiling this frame
-        if (run_meta is not None):
-            profiler.add_step(cnt, run_meta)
-            # Profile time and memory first
-            opts = tf.profiler.ProfileOptionBuilder()\
-                              .select(['bytes','micros', 'float_ops', 'params'])\
-                              .with_max_depth(4)\
-                              .with_step(cnt)\
-                              .build()
-            # Profile time-and-memory, max-depth 4, order by dataflow graph
-            profiler.profile_graph(opts)
-            print("Output of profiler: %s" % (profiler.serialize_to_string()))
-        #cv2.imshow('Output',img)
-
-        #key = cv2.waitKey(1) & 0xFF
-        #if key == ord('q'):
-        #    break
-        #timing
-        frame_ctr = frame_ctr + 1
-        if frame_ctr == 10:
-            time_now = time.time()
-            fps = frame_ctr/(time_now-time_start)
-            print("fps: %f"%fps)
-            frame_ctr = 0
-            time_start = time_now
-
-        cnt += 1
+        run_meta = detector.detect(img_crop, False)
 
         if tagging_enabled:
             fc.frame_end()
 
     # Print summary of execution stats
-    fc.print_exec_stats()
+    if tagging_enabled:
+        fc.print_exec_stats()

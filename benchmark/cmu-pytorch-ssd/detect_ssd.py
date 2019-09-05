@@ -147,7 +147,8 @@ for image_path in TEST_IMAGE_PATHS:
    #     break
 
 # Print summary of execution stats
-fc.print_exec_stats()
+if tagging_enabled:
+    fc.print_exec_stats()
 
 cv2.destroyAllWindows()
 print('-'*60+'\nAverage FPS:', tot_fps / len(TEST_IMAGE_PATHS))

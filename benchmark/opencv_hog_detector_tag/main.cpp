@@ -215,7 +215,7 @@ int main(int argc, char** argv)
         diff_sec = tpend.tv_sec - tpstart.tv_sec;
         diff_nsec = tpend.tv_nsec - tpstart.tv_nsec;
         total_nsec = diff_sec * 1000000000 + diff_nsec;
-        if(frame_id > 50)
+        //if(frame_id > 50)
         {
             if(total_nsec > max_time)
                 max_time = total_nsec;
@@ -237,8 +237,9 @@ int main(int argc, char** argv)
         }
     }
 
-    std::cout << sum_time << " ns \t" << num_f << " frames \t" << sum_time / num_f  << " ns \t" << sum_time / num_f / 1000000 << " ms" << std::endl;
-    std::cout << max_time << " ns \t" << max_time / 1000000 << " ms" << std::endl;
+    std::cout << "Total : " << sum_time / 1000000 << " ms " << num_f << " frames \t" << std::endl;
+    std::cout << "Ave : " <<  sum_time / num_f / 1000000 << " ms "  <<  1000 / (sum_time / num_f / 1000000) << " fps" << std::endl;
+    std::cout << "Worst : " <<  max_time / 1000000 << " ms " <<  1000 / (max_time / 1000000) << " fps" << std::endl;
 
 
     return 0;

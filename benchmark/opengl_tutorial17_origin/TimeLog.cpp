@@ -122,7 +122,9 @@ void TimeLog::PrintNBFrame()
 
 void TimeLog::PrintResult()
 {
-    cout << mTimeSum << " ns \t" << mFrameNumber << " frames \t" << mTimeSum / mFrameNumber  << " ns \t" << mTimeSum / mFrameNumber / 1000000 << " ms" << endl;
-    cout << mTimeMax << " ns \t" << mTimeMax / MICRO_SEC << " ms" << endl;
+    //cout << mTimeSum << " ns \t" << mFrameNumber << " frames \t" << mTimeSum / mFrameNumber  << " ns \t" << mTimeSum / mFrameNumber / 1000000 << " ms" << endl;
+    //cout << mTimeMax << " ns \t" << mTimeMax / MICRO_SEC << " ms" << endl;
+    cout << "Ave : " <<  mTimeSum / mFrameNumber / 1000000 << " ms "  <<  1000 / (mTimeSum / mFrameNumber / 1000000) << " fps" << endl;
+    cout << "Worst : " <<  mTimeMax / MICRO_SEC << " ms " <<  1000 / (mTimeMax / MICRO_SEC) << " fps" << endl;
 }
 

@@ -312,7 +312,7 @@ int main( void )
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     // Hide the mouse and enable unlimited mouvement
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Set the mouse at the center of the screen
     glfwPollEvents();
@@ -401,19 +401,14 @@ int main( void )
 	int nbFrames = 0;
 
 	do{
-
-		// Measure speed
-		double currentTime = glfwGetTime();
+        double currentTime = glfwGetTime();
 		gDeltaTime = (float)(currentTime - lastFrameTime);
 		lastFrameTime = currentTime;
 		nbFrames++;
-		if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1sec ago
-			// printf and reset
-//			printf("%f ms/frame\n", 1000.0/double(nbFrames));
-			printf("%f frames/sec\n", double(nbFrames));
-			nbFrames = 0;
-			lastTime += 1.0;
-		}
+
+		timeLog.CheckFrameStartTime();
+		timeLog.CheckFrame10();
+		timeLog.CheckNBFrame(glfwGetTime());
 
 		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Buffer Initialization, Start Frame)
 
@@ -436,9 +431,12 @@ int main( void )
 		SwapFrameBuffer();
 
 		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "SwapFrameBuffer", 4);	// Diff(Draw Full, Swap and End of Frame)
+        timeLog.CheckFrameEndTime();
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0 );
+
+    timeLog.PrintResult();
 
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &gVertexBuffer);

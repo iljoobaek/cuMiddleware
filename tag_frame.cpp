@@ -73,7 +73,7 @@ void FrameJob::print_exec_stats() {
 /* Implement the C-exposed interface for FrameJob objects */
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 void *CreateFrameJobObj(const char *fj_name, bool shareable_flag) {
 	return reinterpret_cast<void *>(new FrameJob(fj_name, shareable_flag));
 }
@@ -134,9 +134,9 @@ void FrameJob_print_exec_stats(void *fj_obj) {
 }
 #ifdef __cplusplus
 }
-#endif 
+#endif
 
-/* 
+/*
  * Object to contain run-time execution stats collection for registered frame-jobs
  * Facilitates computation of expected slack-time for frame-jobs, which are
  * sent to server to assist in job prioritization.
@@ -145,7 +145,7 @@ void FrameJob_print_exec_stats(void *fj_obj) {
 FrameController::FrameController(const char *_frame_task_name, float _desired_fps,
 		bool _allow_frame_drop) \
 	: task_name(_frame_task_name), desired_fps(_desired_fps), allow_frame_drop(_allow_frame_drop),
-	frame_start_us(0L), frame_deadline_us(0L), 
+	frame_start_us(0L), frame_deadline_us(0L),
 	last_drn_us(-1L), last_cpu_exec_time (-1L), max_cpu_exec_time(-1L), min_cpu_exec_time(-1L),
 	avg_cpu_exec_time(-1.0),
 	best_frame_us(-1L), worst_frame_us(-1L), avg_frame_us(-1.0),
@@ -162,7 +162,7 @@ FrameController::~FrameController() {
 	frame_jobs.clear(); // Destroy all FrameJobs while emptying frame_jobs
 }
 
-/* 
+/*
  * Registering a frame job returns a valid job id, or -1 on error.
  * Shareable flag parameter determines whether job is designated to be able
  * to share GPU with other processes' jobs
@@ -196,7 +196,7 @@ void FrameController::frame_start() {
 	std::chrono::system_clock::time_point now_tp = std::chrono::high_resolution_clock::now();
 	std::chrono::microseconds us_now = std::chrono::duration_cast<std::chrono::microseconds>(now_tp.time_since_epoch());
 
-	frame_start_us = us_now.count();	
+	frame_start_us = us_now.count();
 	frame_deadline_us = (us_now + desired_frame_drn_us).count();
 }
 void FrameController::frame_end() {
@@ -207,14 +207,14 @@ void FrameController::frame_end() {
 
 	int64_t frame_us = frame_drn_us.count();
 	double real_fps = 1.0 / (double)(frame_us / MICROS_PER_SECOND);
-	fprintf(stderr, "Frame frame duration: %ld us, frame FPS %lf\n",
-			frame_us, real_fps);
+	//fprintf(stderr, "Frame frame duration: %ld us, frame FPS %lf\n",
+	//		frame_us, real_fps);
 
 	// Update bookkeeping of frame times
 	last_drn_us = frame_us;
-	if (best_frame_us == -1 || frame_us < best_frame_us) { 
+	if (best_frame_us == -1 || frame_us < best_frame_us) {
 		best_frame_us = frame_us;
-   	} 
+   	}
    	if (worst_frame_us == -1 || frame_us > worst_frame_us) {
 	   	worst_frame_us = frame_us;
 	}
@@ -268,7 +268,7 @@ int FrameController::prepare_job_by_id(int job_id, pid_t tid) {
 	/*
 	 * Compute slacktime relative to absolute deadline,
 	 * return -3 (dropping frame error) if allowed to skip frame and
-	 * slacktime is negative 
+	 * slacktime is negative
 	 */
 	compute_frame_job_slacktime(tid, job_id, &slacktime, &first_flag);
 	if (allow_frame_drop && slacktime < 0) {
@@ -321,11 +321,11 @@ void FrameController::print_exec_stats() {
 /*
 * Slack-time computation at runtime relative to current absolute deadline
 * which is only valid between frame_start/end() calls
-* Sets input pointers on success (returning 0) with slacktime and 
+* Sets input pointers on success (returning 0) with slacktime and
 * whether slacktime is initialized or not yet known
 * Returns -1 on error, undefined values for input pointers
 */
-int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id, 
+int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id,
 						int64_t *slacktime_p, bool *no_slacktime_p) {
 	if (job_id < 0 || job_id >= (long int)frame_jobs.size()) {
 		return -1;
@@ -358,7 +358,7 @@ int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id,
 /* Implement the C-exposed interface for FrameController objects */
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 void *CreateFrameControllerObj(const char *frame_task_name, float desired_fps,
 		bool allow_frame_drop) {
 	return reinterpret_cast<void *>(
@@ -397,5 +397,4 @@ void FrameController_print_exec_stats(void *fc_obj) {
 }
 #ifdef __cplusplus
 }
-#endif 
-
+#endif

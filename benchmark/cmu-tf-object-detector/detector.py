@@ -257,6 +257,9 @@ if __name__ == '__main__':
         allow_frame_drop = False
         fc = tag_layer_fps.FrameController("Tensorflow 1.0 SSD", fps, allow_frame_drop)
         tag_layer_fps.tag_tf_session_run(fc, False)
+        print("Tagging ENABLED")
+    else:
+        print("Tagging NOT enabled")
     ######
 
     checkpoint_path = os.path.join(dirname,
@@ -266,11 +269,16 @@ if __name__ == '__main__':
     label_map_path = os.path.join(dirname,
         './train_kitti_mot_lisa_bdd_distort_color_focal_loss_300k/kitti_mot_bdd100k_lisaExtended2Coco_(train).tfrecord.pbtxt')
     detector = ObjectDetector(checkpoint_path, pipeline_config_path, label_map_path,
-        network_size = None)
-    
+        network_size=None)
+
+    drn_l = []
+    start = None
+    end = None
     for imgpath in TEST_IMAGE_PATHS:
         if tagging_enabled:
             fc.frame_start()
+        else:
+            start = time.perf_counter()
 
         img = cv2.imread(imgpath, cv2.IMREAD_COLOR)
         #crop ROI
@@ -294,7 +302,16 @@ if __name__ == '__main__':
 
         if tagging_enabled:
             fc.frame_end()
+        else:
+            # Save frame duration
+            end = time.perf_counter()
+            print("Duration of frame: %12.10f" % (end-start))
+            drn = (end - start)
+            drn_l.append(drn)
 
     # Print summary of execution stats
     if tagging_enabled:
         fc.print_exec_stats()
+    else:
+        print("Demo execution stats over %d frames:" % len(drn_l))
+        print("Min: %s [s], Avg: %s [s]" % (min(drn_l), sum(drn_l)/float(len(drn_l))))

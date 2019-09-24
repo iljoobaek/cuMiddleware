@@ -15,10 +15,10 @@ import argparse
 from vision.nn_profile import Profiler
 
 # If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
-PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
-TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
-#PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
-#TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 154) ]
+#PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
+#TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
+PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
+TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 154) ]
 
 parse = argparse.ArgumentParser("Run an SSD with or without tagging")
 parse.add_argument("--net", dest="net", default='mb1-ssd', choices=['mb1-ssd', 'vgg16-ssd'])
@@ -86,8 +86,8 @@ flops, params = flops_counter.get_model_complexity_info(predictor.net.base_net.c
 #######
 # To enable pytorch tagging of SSD Pytorch module
 if tagging_enabled:
-    sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
-    #sys.path.append("/home/iljoo/cuMiddleware_work/cuMiddleware/python")
+    #sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
+    sys.path.append("/home/iljoo/cuMiddleware_work/cuMiddleware/python")
     import tag_layer_fps
     net = predictor.net
     allow_frame_drop = False
@@ -109,7 +109,7 @@ autograd_prof_flag = False
 def frame_work(image_path):
     global timer, tot_fps, min_fps, frm_cnt, tenth_flag, autograd_prof_flag
     timer.start()
-    tenth_flag -= 1 
+    tenth_flag -= 1
     orig_image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     image = orig_image.copy()
     if tenth_flag == 0 and enable_prof:
@@ -129,38 +129,39 @@ def frame_work(image_path):
     frame_fps = 1.0 / interval;
     tot_fps += frame_fps
     frm_cnt+=1
-    if frm_cnt > 5:  # ignore first a few frame result
+    if frm_cnt > 15:  # ignore first a few frame result
         if frame_fps < min_fps:
             min_fps = frame_fps
-    print('Time: {:.8f}s, FPS: {:.2f}, Detect Objects: {:d}.'.format(interval, frame_fps, labels.size(0)))
-    #for i in range(boxes.size(0)):
-    #    box = boxes[i, :]
-    #    label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
-    #    cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
+    #print('Time: {:.8f}s, FPS: {:.2f}, Detect Objects: {:d}.'.format(interval, frame_fps, labels.size(0)))
+    for i in range(boxes.size(0)):
+        box = boxes[i, :]
+        label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
+        cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
 
-    #    cv2.putText(orig_image, label,
-    #                (box[0]+20, box[1]+40),
-    #                cv2.FONT_HERSHEY_SIMPLEX,
-    #                1,  # font scale
-    #                (255, 0, 255),
-    #                2)  # line type
+        cv2.putText(orig_image, label,
+                    (box[0]+20, box[1]+40),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,  # font scale
+                    (255, 0, 255),
+                    2)  # line type
+    return orig_image
 
 for image_path in TEST_IMAGE_PATHS:
     if tagging_enabled:
         with tag_layer_fps.FrameController.frame_context(fc) as frame:
-            frame_work(image_path)
+            orig_image = frame_work(image_path)
     else:
-        frame_work(image_path)
-   # cv2.imshow('SSD (PyTorch) annotated', orig_image)
-   # if cv2.waitKey(1) & 0xFF == ord('q'):
-   #     break
+        orig_image = frame_work(image_path)
+    cv2.imshow('SSD (PyTorch) annotated', orig_image)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
 # Print summary of execution stats
 if tagging_enabled:
     fc.print_exec_stats()
 
 cv2.destroyAllWindows()
-print('-'*60+'\nAverage FPS: {:.2f}'.format(tot_fps / len(TEST_IMAGE_PATHS)))
+print('-'*60+'\nAvg FPS: {:.2f}'.format(tot_fps / len(TEST_IMAGE_PATHS)))
 print('Worst FPS: {:.2f}'.format(min_fps))
 if tenth_flag < 0 and enable_prof:
     print("Profiling results:")

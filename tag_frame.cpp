@@ -316,6 +316,9 @@ void FrameController::print_exec_stats() {
 	std::cout << "Total frame execution time (last, min, avg, max): \t\t"\
 		<< last_drn_us << "us, " << best_frame_us << "us, " << avg_frame_us << "us, "\
 		<< worst_frame_us << "us" << std::endl;
+    std::cout << "------------------------------------------------------------" << std::endl;
+    std::cout << "Avg FPS: " << (1000 / (avg_frame_us/1000)) << std::endl;
+    std::cout << "Worst FPS: " << (1000 / (worst_frame_us/1000)) << std::endl;
 }
 
 /*

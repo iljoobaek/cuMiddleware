@@ -229,8 +229,10 @@ class ObjectDetector(object):
 
 if __name__ == '__main__':
     # If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
-    PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
-    TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
+    #PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
+    #TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
+    PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
+    TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 154) ]
 
     parse = argparse.ArgumentParser("Run an SSD with or without tagging")
     parse.add_argument("--fps", dest="fps", default=-1, help="Enable fps control with tagging at desired fps [default -1, disabled]")
@@ -253,7 +255,8 @@ if __name__ == '__main__':
     #######
     # To enable frame-job tagging of SSD Tensorflow's Session.run() function
     if tagging_enabled:
-        sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
+        #sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
+        sys.path.append("/home/iljoo/cuMiddleware_work/cuMiddleware/python")
         import tag_layer_fps
         allow_frame_drop = False
         fc = tag_layer_fps.FrameController("Tensorflow 1.0 SSD", fps, allow_frame_drop)
@@ -275,6 +278,7 @@ if __name__ == '__main__':
     drn_l = []
     start = None
     end = None
+    frm_cnt = 0
     for imgpath in TEST_IMAGE_PATHS:
         if tagging_enabled:
             fc.frame_start()
@@ -305,10 +309,12 @@ if __name__ == '__main__':
             fc.frame_end()
         else:
             # Save frame duration
-            end = time.perf_counter()
-            print("Duration of frame: %12.10f" % (end-start))
-            drn = (end - start)
-            drn_l.append(drn)
+            frm_cnt+=1
+            if frm_cnt > 15:  # ignore first a few frame result
+                end = time.perf_counter()
+                #print("Duration of frame: %12.10f" % (end-start))
+                drn = (end - start)
+                drn_l.append(drn)
         cv2.imshow("TF demo output", vis_img)
         cv2.waitkey(1)  # Non-blocking form
 
@@ -318,3 +324,7 @@ if __name__ == '__main__':
     else:
         print("Demo execution stats over %d frames:" % len(drn_l))
         print("Min: %s [s], Avg: %s [s]" % (min(drn_l), sum(drn_l)/float(len(drn_l))))
+        worst_ms = 1000*max(drn_l)
+        avg_ms = 1000*(sum(drn_l)/float(len(drn_l)))
+        print('-'*60+'\nAvg FPS: {:.2f}'.format(1000/avg_ms))
+        print('Worst FPS: {:.2f}'.format(1000/worst_ms))

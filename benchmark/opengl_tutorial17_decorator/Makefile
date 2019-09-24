@@ -1,6 +1,10 @@
 CC = g++ -std=c++11
-CFLAGS = -Wall -I. -I/usr/local/cuda-10.0/include -I/usr/include/x86-64-linux-gnu/
-LDFLAGS = -L. -L/usr/local/lib  -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/cuda-10.0/lib64/stubs
+
+INCLUDES_OPENCV = /home/iljoo/opencv_3.3.1/include/opencv
+LIB_PATH_OPENCV = /home/iljoo/opencv_3.3.1/lib
+
+CFLAGS = -Wall -I. -I/usr/local/cuda-10.0/include -I/usr/include/x86-64-linux-gnu/ -L$(LIB_PATH_OPENCV)
+LDFLAGS = -L. -L$(LIB_PATH_OPENCV)  -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/cuda-10.0/lib64/stubs
 DEPS = shader.hpp texture.hpp objloader.hpp controls.hpp vboindexer.hpp quaternion_utils.hpp
 OBJ = tutorial17.o shader.o texture.o objloader.o controls.o quaternion_utils.o vboindexer.o GpuLog.o TimeLog.o
 TARGET = cuTestClient
@@ -11,9 +15,9 @@ LIBS=-lGL -lGLEW -lGLU -lGLEW -lglfw -lglut -lopencv_shape -lopencv_stitching -l
 # Tagging
 CPP_FLAGS=-std=c++11
 MIDFLAGS=-Wall -g -Wl,--no-as-needed
-INCLUDES_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware_decorator/include
-LIB_PATH_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware_decorator/lib
-TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lpytag -lpthread -lrt
+INCLUDES_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware/include
+LIB_PATH_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware/lib
+TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lcarss -lpthread -lrt
 
 .PHONY = clean
 

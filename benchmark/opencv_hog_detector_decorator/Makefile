@@ -9,9 +9,9 @@ OPENCV_LDFLAGS= -L$(LIB_PATH_OPENCV) -lopencv_core -lopencv_flann -lopencv_imgpr
 # Tagging
 CPP_FLAGS=-std=c++11
 MIDFLAGS=-Wall -g -Wl,--no-as-needed
-INCLUDES_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware_decorator/include
-LIB_PATH_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware_decorator/lib
-TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lpytag -lpthread -lrt
+INCLUDES_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware/include
+LIB_PATH_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware/lib
+TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lcarss -lpthread -lrt
 
 # Main application with Tagging
 hogdetector : main.cpp

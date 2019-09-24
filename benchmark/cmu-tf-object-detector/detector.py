@@ -128,6 +128,7 @@ class ObjectDetector(object):
             image: a uint8 [height, width, depth] array representing the image.
             profile_flag: a boolean, determines whether to produce a run_meta object
         Returns:
+            vis_img: a cv2 image containing the bounding boxes
             run_meta: a tf.RunMetadata() object with run profiling statistics, None if profile_flag=False
         """
         run_meta = None
@@ -147,7 +148,7 @@ class ObjectDetector(object):
         # numpy NMS method
         rbboxes, rscores, rclasses = self._np_nms(rbboxes,rscores)
         #visualization
-        visualization.plt_bboxes(
+        vis_img = visualization.plt_bboxes(
             image,
             rclasses+1,
             rscores,
@@ -155,7 +156,7 @@ class ObjectDetector(object):
             self._category_index,
             Threshold=None
         )
-        return run_meta
+        return vis_img, run_meta
 
     def _dummy_nms(self, detection_boxes, detection_scores, additional_fields=None,
                    clip_window=None):
@@ -298,7 +299,7 @@ if __name__ == '__main__':
         cv2.putText(img, '{:s}'.format('ROI normal (300)'),
             (crop_xmin, crop_ymin+30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),2)
 
-        run_meta = detector.detect(img_crop, False)
+        vis_img, run_meta = detector.detect(img_crop, False)
 
         if tagging_enabled:
             fc.frame_end()
@@ -308,6 +309,8 @@ if __name__ == '__main__':
             print("Duration of frame: %12.10f" % (end-start))
             drn = (end - start)
             drn_l.append(drn)
+        cv2.imshow("TF demo output", vis_img)
+        cv2.waitkey(1)  # Non-blocking form
 
     # Print summary of execution stats
     if tagging_enabled:

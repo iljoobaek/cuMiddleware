@@ -229,10 +229,10 @@ class ObjectDetector(object):
 
 if __name__ == '__main__':
     # If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
-    #PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
-    #TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
-    PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
-    TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 154) ]
+    PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
+    TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
+    #PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
+    #TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 154) ]
 
     parse = argparse.ArgumentParser("Run an SSD with or without tagging")
     parse.add_argument("--fps", dest="fps", default=-1, help="Enable fps control with tagging at desired fps [default -1, disabled]")
@@ -255,8 +255,8 @@ if __name__ == '__main__':
     #######
     # To enable frame-job tagging of SSD Tensorflow's Session.run() function
     if tagging_enabled:
-        #sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
-        sys.path.append("/home/iljoo/cuMiddleware_work/cuMiddleware/python")
+        sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
+        #sys.path.append("/home/iljoo/cuMiddleware_work/cuMiddleware/python")
         import tag_layer_fps
         allow_frame_drop = False
         fc = tag_layer_fps.FrameController("Tensorflow 1.0 SSD", fps, allow_frame_drop)
@@ -316,7 +316,7 @@ if __name__ == '__main__':
                 drn = (end - start)
                 drn_l.append(drn)
         cv2.imshow("TF demo output", vis_img)
-        cv2.waitkey(1)  # Non-blocking form
+        cv2.waitKey(1)  # Non-blocking form
 
     # Print summary of execution stats
     if tagging_enabled:

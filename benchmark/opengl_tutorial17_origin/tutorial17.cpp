@@ -75,7 +75,7 @@ float gDeltaTime;
 glm::mat4 gProjectionMatrix;
 glm::mat4 gViewMatrix;
 
-GpuLog gGpuLog;
+//GpuLog gGpuLog;
 TimeLog timeLog;
 
 void GpuBuffer()
@@ -243,7 +243,7 @@ void SwapFrameBuffer()
 int main( void )
 {
 
-	gGpuLog.Initialize();
+	//gGpuLog.Initialize();
 
 	// Initialise GLFW
 	if( !glfwInit() )
@@ -281,7 +281,7 @@ int main( void )
  	timeLog.Initialize(glfwGetTime());
 
 	// Initialize the GUI
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Preparation", 4);	// Diff(Program Start, Preparation)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Preparation", 4);	// Diff(Program Start, Preparation)
 
 	TwInit(TW_OPENGL_CORE, NULL);
 	TwWindowSize(1024, 768);
@@ -318,7 +318,7 @@ int main( void )
     glfwPollEvents();
     glfwSetCursorPos(window, 1024/2, 768/2);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Initialization", 4);	// Diff(Preparation, Setup Program)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Initialization", 4);	// Diff(Preparation, Setup Program)
 
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
@@ -393,7 +393,7 @@ int main( void )
 	glUseProgram(gProgramID);
 	gLightID = glGetUniformLocation(gProgramID, "LightPosition_worldspace");
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Buffers", 4);	// Diff(Setup Program, Buffer Initialization)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Buffers", 4);	// Diff(Setup Program, Buffer Initialization)
 
 	// For speed computation
 	double lastTime = glfwGetTime();
@@ -410,27 +410,27 @@ int main( void )
 		timeLog.CheckFrame10();
 		timeLog.CheckNBFrame(glfwGetTime());
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Buffer Initialization, Start Frame)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Buffer Initialization, Start Frame)
 
 		GpuBuffer();
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "GLBuffer", 4);	// Diff(Start Frame, GL Buffer Setup)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "GLBuffer", 4);	// Diff(Start Frame, GL Buffer Setup)
 
 		DrawEulerRotation();
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawEuler", 4);	// Diff(GL Buffer Setup, Draw Half)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawEuler", 4);	// Diff(GL Buffer Setup, Draw Half)
 
 		DrawQuaternionRotation();
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawQuaternion", 4);	// Diff(Draw Half, Draw Full)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawQuaternion", 4);	// Diff(Draw Half, Draw Full)
 
 		DrawUI();
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawUI", 4);	// Diff(Draw Full, Draw UI)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawUI", 4);	// Diff(Draw Full, Draw UI)
 
 		SwapFrameBuffer();
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "SwapFrameBuffer", 4);	// Diff(Draw Full, Swap and End of Frame)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "SwapFrameBuffer", 4);	// Diff(Draw Full, Swap and End of Frame)
         timeLog.CheckFrameEndTime();
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&

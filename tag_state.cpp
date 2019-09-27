@@ -104,7 +104,8 @@ meta_job_t *TagState::get_local_meta_job_for_tid(pid_t tid) {
 	// Unlocks on destruction of lck
 }
 
-int TagState::acquire_gpu(pid_t call_tid, int64_t slacktime, bool first, bool shareable) {
+int TagState::acquire_gpu(pid_t call_tid, int64_t frame_pd_us, int64_t deadline_us,
+		int64_t slacktime, bool first, bool shareable) {
 	// First, retrieve tid and local copy of current metadata for job
 	meta_job_t *curr_meta_job = get_local_meta_job_for_tid(call_tid);
 
@@ -112,7 +113,9 @@ int TagState::acquire_gpu(pid_t call_tid, int64_t slacktime, bool first, bool sh
 	// to this thread's job (i.e. for this tid)
 	set_running_job_for_tid(call_tid, curr_meta_job);
 
-	int res = tag_job_begin(tag_pid, call_tid, curr_meta_job->job_name, slacktime, first, shareable,
+	int res = tag_job_begin(tag_pid, call_tid, curr_meta_job->job_name,
+		   	frame_pd_us, deadline_us,
+			slacktime, first, shareable,
 			curr_meta_job->worst_peak_mem);
 
 	// Get current time in microseconds
@@ -314,9 +317,11 @@ meta_job_t *TagState_get_local_meta_job_for_tid(void *tag_obj, pid_t tid) {
 	return ts->get_local_meta_job_for_tid(tid);
 }
 int TagState_acquire_gpu(void *tag_obj, pid_t tid,
+		int64_t frame_pd_us, int64_t deadline_us,
 	   	int64_t slacktime, bool first_flag, bool shareable_flag) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);
-	return ts->acquire_gpu(tid, slacktime, first_flag, shareable_flag);
+	return ts->acquire_gpu(tid, frame_pd_us, deadline_us,
+			slacktime, first_flag, shareable_flag);
 }
 int TagState_release_gpu(void *tag_obj, pid_t call_tid) {
 	TagState *ts = reinterpret_cast<TagState *>(tag_obj);

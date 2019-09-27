@@ -37,8 +37,10 @@ void FrameJob::update_wc_exec_time() {
 void FrameJob::set_wc_remaining_exec_time(int64_t rem_exec_time) {
 	wc_remaining_exec_time = rem_exec_time;
 }
-int FrameJob::prepare_job(pid_t tid, int64_t slacktime, bool first_flag) {
-	int res = job_state.acquire_gpu(tid, slacktime, first_flag, shareable);
+int FrameJob::prepare_job(pid_t tid, int64_t period_us, int64_t deadline_us,
+		int64_t slacktime, bool first_flag) {
+	int res = job_state.acquire_gpu(tid, period_us,
+									deadline_us, slacktime, first_flag, shareable);
 	if (res < 0) {
 		fprintf(stderr, "Could not prepare job (%s)!\n", job_name.c_str());
 	}
@@ -100,9 +102,10 @@ void FrameJob_set_wc_remaining_exec_time(void *fj_obj, int64_t ret) {
 	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
 	return fj->set_wc_remaining_exec_time(ret);
 }
-int FrameJob_prepare_job(void *fj_obj, pid_t tid, int64_t slacktime, bool first_flag) {
+int FrameJob_prepare_job(void *fj_obj, pid_t tid, int64_t period_us,
+		int64_t deadline_us, int64_t slacktime, bool first_flag) {
 	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
-	return fj->prepare_job(tid, slacktime, first_flag);
+	return fj->prepare_job(tid, period_us, deadline_us, slacktime, first_flag);
 }
 int FrameJob_release_job(void *fj_obj, pid_t tid) {
 	FrameJob *fj = reinterpret_cast<FrameJob *>(fj_obj);
@@ -156,7 +159,8 @@ FrameController::FrameController(const char *_frame_task_name, float _desired_fp
 
 	// Compute desired frame duration
 	int64_t micros_pf = (int64_t)round((MICROS_PER_SECOND) * 1.0 / desired_fps);
-	desired_frame_drn_us = std::chrono::microseconds(micros_pf);
+	desired_frame_drn = std::chrono::microseconds(micros_pf);
+	frame_pd_us = desired_frame_drn.count();
 }
 FrameController::~FrameController() {
 	frame_jobs.clear(); // Destroy all FrameJobs while emptying frame_jobs
@@ -197,7 +201,7 @@ void FrameController::frame_start() {
 	std::chrono::microseconds us_now = std::chrono::duration_cast<std::chrono::microseconds>(now_tp.time_since_epoch());
 
 	frame_start_us = us_now.count();
-	frame_deadline_us = (us_now + desired_frame_drn_us).count();
+	frame_deadline_us = (us_now + desired_frame_drn).count();
 }
 void FrameController::frame_end() {
 	// Get current time in microseconds
@@ -206,7 +210,7 @@ void FrameController::frame_end() {
 	std::chrono::microseconds frame_drn_us(us_now.count() - frame_start_us);
 
 	int64_t frame_us = frame_drn_us.count();
-	double real_fps = 1.0 / (double)(frame_us / MICROS_PER_SECOND);
+	// double real_fps = 1.0 / (double)(frame_us / MICROS_PER_SECOND);
 	//fprintf(stderr, "Frame frame duration: %ld us, frame FPS %lf\n",
 	//		frame_us, real_fps);
 
@@ -263,6 +267,7 @@ int FrameController::prepare_job_by_id(int job_id, pid_t tid) {
 	}
 	// Retrieve frame_job
 	std::shared_ptr<FrameJob> fj = frame_jobs[job_id];
+	int64_t deadline_us = 0;
 	int64_t slacktime = 0;
 	bool first_flag = true;
 	/*
@@ -270,12 +275,12 @@ int FrameController::prepare_job_by_id(int job_id, pid_t tid) {
 	 * return -3 (dropping frame error) if allowed to skip frame and
 	 * slacktime is negative
 	 */
-	compute_frame_job_slacktime(tid, job_id, &slacktime, &first_flag);
+	compute_frame_job_slacktime(tid, job_id, &deadline_us, &slacktime, &first_flag);
 	if (allow_frame_drop && slacktime < 0) {
 		return -3;
 	}
-	// Prepare job with slacktime
-	int res = fj->prepare_job(tid, slacktime, first_flag);
+	// Prepare job with period, deadline and slacktime
+	int res = fj->prepare_job(tid, frame_pd_us, deadline_us, slacktime, first_flag);
 	if (res < 0) {
 		return -2;
 	}
@@ -324,11 +329,12 @@ void FrameController::print_exec_stats() {
 /*
 * Slack-time computation at runtime relative to current absolute deadline
 * which is only valid between frame_start/end() calls
-* Sets input pointers on success (returning 0) with slacktime and
+* Sets input pointers on success (returning 0) with slacktime, deadline_us and
 * whether slacktime is initialized or not yet known
 * Returns -1 on error, undefined values for input pointers
 */
 int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id,
+						int64_t *deadline_us_p,
 						int64_t *slacktime_p, bool *no_slacktime_p) {
 	if (job_id < 0 || job_id >= (long int)frame_jobs.size()) {
 		return -1;
@@ -353,6 +359,9 @@ int FrameController::compute_frame_job_slacktime(pid_t tid, int job_id,
 	// Compute slacktime relative to frame_deadline and remaining frame exec time
 	*slacktime_p = (frame_deadline_us - t_us) - \
 					   (exp_exec_time_us + wc_remaining_exec_time_us);
+	// Absolute deadline computed from frame_deadline minus 
+	// remaining frame work exec time
+	*deadline_us_p = frame_deadline_us - (exp_exec_time_us + wc_remaining_exec_time_us);
 	*no_slacktime_p = false;
 	return 0;
 }

@@ -53,6 +53,7 @@ void DestroyMetaJob(void *mj) {
 }
 
 int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
+		int64_t frame_period_us, int64_t deadline_us,
 		int64_t slacktime, bool first_flag, bool shareable_flag,
 		uint64_t required_mem) {
 	/* First, init global jobs if not already */
@@ -65,6 +66,7 @@ int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
 	char job_shm_name[JOB_MEM_NAME_MAX_LEN];
 	job_t *tagged_job;
 	TAG_DEBUG_FN(build_shared_job, pid, tid, job_name,
+			frame_period_us, deadline_us,
 			slacktime, first_flag, shareable_flag, required_mem,
 			QUEUED,
 			&tagged_job,
@@ -112,6 +114,7 @@ int tag_job_end(pid_t pid, pid_t tid, const char *job_name) {
 	job_t *tagged_job;
 	//fprintf(stdout, "Client finished work, communicating to server\n");
 	TAG_DEBUG_FN(build_shared_job, pid, tid, job_name,
+			0.0, 0,
 			0.0, false, false, 0L,	// dummy-data
 			COMPLETED,
 			&tagged_job,

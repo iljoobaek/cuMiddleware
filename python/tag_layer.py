@@ -23,8 +23,9 @@ libpytag.DestroyTagStateObj.restype = None
 libpytag.DestroyTagStateObj.argtypes = [c_void_p]
 
 libpytag.TagState_acquire_gpu.restype = c_int
-libpytag.TagState_acquire_gpu.argtypes = [c_void_p, c_int, c_longlong,
-        c_bool, c_bool]
+libpytag.TagState_acquire_gpu.argtypes = [c_void_p, c_int,
+                                          c_longlong, c_longlong, c_longlong,
+                                          c_bool, c_bool]
 
 libpytag.TagState_release_gpu.restype = c_int
 libpytag.TagState_release_gpu.argtypes = [c_void_p, c_int]
@@ -99,13 +100,18 @@ class TagStateStruct(object):
         libpytag.DestroyTagStateObj(self.ts)
         # Removes reference to self.mj, so it can garbage collected now
 
-    def acquire_gpu(self, tid, slacktime, noslack_flag, shareable_flag):
+    def acquire_gpu(self, tid, period, deadline, slacktime,
+                    noslack_flag, shareable_flag):
         tid = c_int(tid)
+        period = c_longlong(period)
+        deadline = c_longlong(deadline)
         slacktime = c_longlong(slacktime)
         noslack_flag = c_bool(noslack_flag)
         shareable_flag = c_bool(shareable_flag)
 
-        res = libpytag.TagState_acquire_gpu(self.ts, tid, slacktime, noslack_flag, shareable_flag)
+        res = libpytag.TagState_acquire_gpu(self.ts, tid,
+                                            period, deadline, slacktime,
+                                            noslack_flag, shareable_flag)
         return c_int(res).value
 
     def release_gpu(self, tid):
@@ -155,7 +161,7 @@ class TagStateStruct(object):
         libpytag.TagState_print_exec_stats(self.ts)
 
 
-def excl_tag_fn(fn, name):
+def excl_tag_fn(fn, name, def_period=0, def_deadline=0):
     """
     Wraps a function (with given name for job) in simple, exclusive tagging:
     noslack_flag will always be set
@@ -167,8 +173,8 @@ def excl_tag_fn(fn, name):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         tid = gettid()
-        if wrapper.ts.acquire_gpu(tid, slacktime,
-                noslack_flag, shareable_flag) < 0:
+        if wrapper.ts.acquire_gpu(tid, def_period, def_deadline, slacktime,
+                                  noslack_flag, shareable_flag) < 0:
             print("Aborting job, couldn't acquire gpu!")
             raise Exception("Couldn't acquire gpu! Job too big!")
         res = wrapper.fn(*args, **kwargs)
@@ -177,7 +183,7 @@ def excl_tag_fn(fn, name):
         return res
 
     mjs = MetaJobStruct(gettid(), name, 0, 0, 0, 0, 0, 0, 0)
-    ts = TagStateStruct(mjs) # ts will hold a ref to mjs
+    ts = TagStateStruct(mjs)  # ts will hold a ref to mjs
     wrapper.ts = ts
     wrapper.fn = fn
     print("Installed tagging routine for fn (name: %s): %s" % (name, fn.__name__))

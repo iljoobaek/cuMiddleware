@@ -31,13 +31,26 @@
 #define WITHIN_SLACKTIME_THRESHOLD(s) \
 	(s < (int64_t)CURR_SLACKTIME_PQ_EMPTY_OFFSET + SLACKTIME_THRESHOLD)
 
-struct CompareJobSlack {
-public:
-	/* One job is higher priority than another if its slacktime is <= to others */
-    bool operator()(job_t *&j1, job_t *& j2) {
-		return j2->slacktime_us <= j1->slacktime_us;
-    }
-};
+/* Define comparison functor to pass to priorityqueue template parameter */
+typedef bool(*CompareJobFunc)(job_t *&j1, job_t *&j2);
+
+/* One job is higher priority than another if its slacktime is <= to others */
+bool CompareJobSlack(job_t *&j1, job_t *&j2) {
+	return j2->slacktime_us <= j1->slacktime_us;
+}
+/* One job is higher priority than another if its period is <= to others */
+bool CompareJobPeriod(job_t *&j1, job_t *&j2) {
+	return j2->frame_period_us <= j1->frame_period_us;
+}
+/* One job is higher priority than another if its deadline is <= to others */
+bool CompareJobDeadline(job_t *&j1, job_t *&j2) {
+	return j2->deadline_us <= j1->deadline_us;
+}
+/* One job is higher priority than another if its jobid is <= to others */
+bool CompareJobFIFO(job_t *&j1, job_t *&j2) {
+	return j2->jobid <= j1->jobid;
+}
+
 struct CompareJobPtr {
 	job_t *lhs;
 	public: 
@@ -51,9 +64,11 @@ struct CompareJobPtr {
 
 static uint64_t max_gpu_memory_available; // In B
 static uint64_t gpu_memory_available;	// In Bytes
+static bool use_slack;					// static flag set by cmdline args
 
+// Initialize job priority queue - FIFO policy is default
 static std::priority_queue<job_t *,\
-		std::vector<job_t *>, CompareJobSlack> pq_jobs;
+		std::vector<job_t *>, CompareJobFunc> pq_jobs;
 static std::queue<job_t*> fifo_jobs;
 static std::vector<job_t*> executing_jobs;
 static std::queue<job_t*> completed_jobs;
@@ -163,7 +178,7 @@ void alloc_gpu_for_job(job_t *j) {
  * AND 
  * 2) job can appropriately share the GPU with other threads or pids
  * AND
- * 3) job's slacktime below a threshold relative to server period
+ * 3) (if use_slace) job's slacktime below a threshold relative to server period
  * Returns 0 on success, -1 on wait signal, -2 on abort signal for job
  */
 int job_acquire_gpu(job_t *j) {
@@ -188,16 +203,18 @@ int job_acquire_gpu(job_t *j) {
 	}
 
 	bool should_run_now = false;
-	if (j->noslack_flag) {
-		should_run_now = true;
-	} else {
-		// Whether job should run now depends on slacktime threshold
-		should_run_now = WITHIN_SLACKTIME_THRESHOLD(j->slacktime_us);
-	}
-	if (!should_run_now) {
-		// Must wait for slacktime to be within running threshold
-		return -1;
-	}
+	if (use_slack) {
+		if (j->noslack_flag) {
+			should_run_now = true;
+		} else {
+			// Whether job should run now depends on slacktime threshold
+			should_run_now = WITHIN_SLACKTIME_THRESHOLD(j->slacktime_us);
+		}
+		if (!should_run_now) {
+			// Must wait for slacktime to be within running threshold
+			return -1;
+		}
+	} else { should_run_now = true; }
 
 
 	bool can_run_now = false;
@@ -258,11 +275,46 @@ int trigger_job(job_t *tj) {
 
 int main(int argc, char **argv)
 {
+	/* Initialize the scheduling policy from commandline arguments */
+	const char *usage = "Usage: ./mid --policy [rms, edf, lsf, fifo]";
+	CompareJobFunc cmp_fn;
+	use_slack = false;
+	if (argc == 3) {
+		if (strcmp(argv[1], "--policy") == 0) {
+			if ( (strcmp(argv[2], "rms") == 0) ) {
+				fprintf(stdout, "Using RMS scheduler...\n");
+				cmp_fn = &CompareJobPeriod;
+			} else if (strcmp(argv[2], "edf") == 0) {
+				fprintf(stdout, "Using EDF scheduler...\n");
+				cmp_fn = &CompareJobDeadline;
+			} else if (strcmp(argv[2], "lsf") == 0) {
+				fprintf(stdout, "Using LSF scheduler...\n");
+				cmp_fn = &CompareJobSlack;
+				use_slack = true;
+			} else if (strcmp(argv[2], "fifo") == 0) {
+				fprintf(stdout, "Using FIFO scheduler...\n");
+				cmp_fn = &CompareJobFIFO;
+			} else {
+				fprintf(stderr, "%s\n", usage);
+				return -1;
+			}
+		} else {
+			fprintf(stderr, "%s\n", usage);
+			return -1;
+		}
+	} else {
+		fprintf(stderr, "%s\n", usage);
+		return -1;
+	}
+	pq_jobs = std::priority_queue<job_t *,std::vector<job_t *>, CompareJobFunc> (cmp_fn);
+
 	(void)argc; (void) argv;
 	fprintf(stdout, "Starting up middleware main...\n");
 
+	// Initialize middleware state
 	max_gpu_memory_available = 1<<30; // 1 GB
 	gpu_memory_available = max_gpu_memory_available;
+	uint64_t jobc = 0;
 	fprintf(stdout, "GPU Memory has %lu bytes available at init.\n", gpu_memory_available);
 
 	int res;
@@ -297,10 +349,13 @@ int main(int argc, char **argv)
 
 			// Enqueue job request to right queue
 			if (q_job->req_type == QUEUED) {
+				// Assign monotonic jobid to queued job - careful of overflow
+				// TODO: use external counter file
+				q_job->jobid = jobc++;
 				if (q_job->noslack_flag) {
 					fifo_jobs.push(q_job);
 				} else {
-					if (rel_priority_period_count) {
+					if (use_slack && rel_priority_period_count) {
 						// Locally modify the relative priority of this job
 						// compared to older jobs on the pq
 						q_job->slacktime_us += rel_priority_period_count*SLEEP_MICROSECONDS;
@@ -393,13 +448,13 @@ int main(int argc, char **argv)
 			fifo_jobs.pop();
 		}
 
+		if (use_slack && pq_jobs.size()) {
+			// LSF-Priority queue is not empty, increment the rel_priority_period_count
+			rel_priority_period_count++;
+		}
 		/*
 		 * Lastly, run as many jobs (according to priority) as can fit on GPU.
 		 */
-		if (pq_jobs.size()) {
-			// Priority queue is not empty, increment the rel_priority_period_count
-			rel_priority_period_count++;
-		}
 		while (pq_jobs.size()) {
 			/* Peek at top job from pq_jobs */
 			job_t *q_job = pq_jobs.top();

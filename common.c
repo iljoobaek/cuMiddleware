@@ -136,6 +136,7 @@ bool jobs_equal(job_t *a, job_t *b) {
 }
 
 int build_job(pid_t pid, pid_t tid, const char *job_name,
+						int64_t frame_period_us, int64_t deadline_us,
 						int64_t slacktime_us, bool noslack_flag,
 						bool shareable_flag,
 						uint64_t required_mem_b,
@@ -148,6 +149,8 @@ int build_job(pid_t pid, pid_t tid, const char *job_name,
 	shm_job->pid = pid;
 	shm_job->tid = tid;
 	strncpy(shm_job->job_name, job_name, JOB_MEM_NAME_MAX_LEN);
+	shm_job->frame_period_us = frame_period_us;
+	shm_job->deadline_us = deadline_us;
 	shm_job->slacktime_us = slacktime_us;
 	shm_job->noslack_flag = noslack_flag;
 	shm_job->shareable_flag = shareable_flag;
@@ -166,6 +169,7 @@ int build_job(pid_t pid, pid_t tid, const char *job_name,
 }
 
 int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
+						int64_t frame_period_us, int64_t deadline_us,
 						int64_t slacktime_us, bool noslack_flag,
 						bool shareable_flag,
 						uint64_t required_mem_b,
@@ -203,6 +207,7 @@ int build_shared_job(pid_t pid, pid_t tid, const char *job_name,
 
 	// Save job and job_shm_name for caller
 	DEBUG_FN(build_job, pid, tid, job_name,
+						frame_period_us, deadline_us,
 						slacktime_us, noslack_flag, shareable_flag,
 						required_mem_b,
 						req_type, shm_job);

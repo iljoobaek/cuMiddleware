@@ -58,6 +58,7 @@ void DestroyMetaJob(void *mj);
 extern "C" {
 #endif
 int tag_job_begin(pid_t pid, pid_t tid, const char* job_name,
+		int64_t frame_period_us, int64_t deadline_us,
 		int64_t slacktime, bool first_flag, bool shareable_flag,
 		uint64_t required_mem);
 

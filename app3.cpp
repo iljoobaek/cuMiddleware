@@ -45,4 +45,5 @@ int main(int argc, char **argv) {
 		}
 		fc.frame_end();
 	}
+	fc.print_exec_stats();
 }

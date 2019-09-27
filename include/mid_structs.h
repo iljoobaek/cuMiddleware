@@ -35,7 +35,9 @@ typedef struct job {
     pid_t tid;                      // tid (since client may be multithreaded)
 
 	char job_name[MAX_NAME_LENGTH];
-	int64_t slacktime_us;				// Est. time remaining before job's deadline after execution (us)
+	int64_t frame_period_us;		// (Fixed per frame) Period of frame job belongs to (us)
+	int64_t deadline_us;			// Absolute estimated job deadline (us)
+	int64_t slacktime_us;		 	// Est. time remaining before job's deadline after execution (us)
 	bool noslack_flag;				// slacktime ignored if true
 	bool shareable_flag;			// Can job execute on GPU with other shareable jobs from other pids?
 	uint64_t required_mem_b;			// Worst-case job GPU memory requirement (bytes)
@@ -44,6 +46,9 @@ typedef struct job {
 	// Client-side/server-side attrs - communication properties
 	sem_t client_wake;				// Semaphore controlling when client can continue within a tag
 	bool client_exec_allowed;		// flag determining whether client should execute when woken
+
+	// Server-side only book-keeping
+	uint64_t jobid;
 } job_t;
 
 

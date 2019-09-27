@@ -45,7 +45,8 @@ struct FrameJob {
 	/* Job preparation/release */
 	// Returns -1 if job must be aborted, 0 on successful preparation
 	// On success, starts timer for TagState object
-	int prepare_job(pid_t tid, int64_t slacktime, bool first_flag);
+	int prepare_job(pid_t tid, int64_t period_us,
+			int64_t deadline_us, int64_t slacktime, bool first_flag);
 	int release_job(pid_t tid);
 
 	void print_exec_stats();
@@ -63,7 +64,8 @@ uint64_t FrameJob_get_expected_required_mem_for_tid(void *fj_obj, pid_t tid);
 int64_t FrameJob_get_wc_remaining_exec_time(void *fj_obj);
 void FrameJob_update_wc_exec_time(void *fj_obj);
 void FrameJob_set_wc_remaining_exec_time(void *fj_obj, int64_t rem_exec_time);
-int FrameJob_prepare_job(void *fj_obj, pid_t tid, int64_t slacktime, bool first_flag);
+int FrameJob_prepare_job(void *fj_obj, pid_t tid, int64_t period_us,
+		int64_t deadline_us, int64_t slacktime, bool first_flag);
 int FrameJob_release_job(void *fj_obj, pid_t tid);
 int64_t FrameJob_get_worst_last_exec_time(void *fj_obj);
 int64_t FrameJob_get_overall_best_exec_time(void *fj_obj);
@@ -90,7 +92,8 @@ struct FrameController {
 	std::string task_name;
 	float desired_fps;
 	bool allow_frame_drop;
-	std::chrono::microseconds desired_frame_drn_us;
+	std::chrono::microseconds desired_frame_drn;
+	int64_t frame_pd_us;
 	long int frame_start_us;			// Most recent frame start time (us)
 	long int frame_deadline_us;			// Most recent frame deadline (us)
 	int64_t last_drn_us;				// Most recent frame duration (us), -1 if uninit
@@ -139,6 +142,7 @@ struct FrameController {
 		 * Returns -1 on error, undefined values for input pointers
 		 */
 		int compute_frame_job_slacktime(pid_t tid, int job_id,
+				int64_t *deadline_us_p,
 				int64_t *slacktime_p, bool *initialize_flag_p);
 };
 #endif

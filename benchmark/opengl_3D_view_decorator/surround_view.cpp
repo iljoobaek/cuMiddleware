@@ -124,7 +124,7 @@ vector<string> obj_names;
 
 std::string cam_View = "S";
 
-GpuLog gGpuLog;
+//GpuLog gGpuLog;
 //GpuQuery * gGpuQuery;
 TimeLog timeLog;
 
@@ -410,7 +410,7 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 
 	cvFlip(image, NULL, -1);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
+	////gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
 
 	//printf("target_im_width = %d, target_im_height = %d\n", target_im->width, target_im->height);
 	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, image->width, image->height, 0, GL_BGR, GL_UNSIGNED_BYTE, image->imageData);
@@ -420,12 +420,12 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
+	////gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
 
 	// ... which requires mipmaps. Generate them automatically.
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+	////gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
 
 	return texture;
 }
@@ -438,7 +438,7 @@ int ConvertIplToTexturePX2_1(IplImage *image, GLuint *texture)
 
 	cvFlip(image, NULL, -1);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
 	return 0;
 }
 
@@ -453,7 +453,7 @@ int ConvertIplToTexturePX2_2(IplImage *image)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
 	return 0;
 }
 
@@ -462,7 +462,7 @@ int ConvertIplToTexturePX2_3(IplImage *image)
 	// ... which requires mipmaps. Generate them automatically.
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
 	return 0;
 }
 
@@ -473,7 +473,7 @@ int ConvertIplToTexturePX2_4(IplImage *image, GLuint *texture)
 
 	cvFlip(image, NULL, -1);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
 	return 0;
 }
 
@@ -488,7 +488,7 @@ int ConvertIplToTexturePX2_5(IplImage *image)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
 	return 0;
 }
 
@@ -497,7 +497,7 @@ int ConvertIplToTexturePX2_6(IplImage *image)
 	// ... which requires mipmaps. Generate them automatically.
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
 	return 0;
 }
 
@@ -508,7 +508,7 @@ int ConvertIplToTexturePX2_7(IplImage *image, GLuint *texture)
 
 	cvFlip(image, NULL, -1);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
 	return 0;
 }
 
@@ -523,7 +523,7 @@ int ConvertIplToTexturePX2_8(IplImage *image)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
 	return 0;
 }
 
@@ -532,7 +532,7 @@ int ConvertIplToTexturePX2_9(IplImage *image)
 	// ... which requires mipmaps. Generate them automatically.
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
 	return 0;
 }
 
@@ -543,7 +543,7 @@ int ConvertIplToTexturePX2_10(IplImage *image, GLuint *texture)
 
 	cvFlip(image, NULL, -1);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
 	return 0;
 }
 
@@ -558,7 +558,7 @@ int ConvertIplToTexturePX2_11(IplImage *image)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
 	return 0;
 }
 
@@ -567,7 +567,7 @@ int ConvertIplToTexturePX2_12(IplImage *image)
 	// ... which requires mipmaps. Generate them automatically.
 	glGenerateMipmap(GL_TEXTURE_2D);
 
-	gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
+	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "MipmapGen", 4);	// Timediff (mipmap generation)
 	return 0;
 }
 
@@ -834,7 +834,7 @@ int acquireFrameFromVideo()
 		{
 			gFrames[i] = cvQueryFrame(gCaptures[i]);
 
-			gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "VideoToFrame", 4);	// Timediff (getting frame from video)
+			//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "VideoToFrame", 4);	// Timediff (getting frame from video)
 
 			if (gFrames[i] != NULL)
 			{
@@ -1086,7 +1086,7 @@ int main(int argc, char** argv)
 		timeLog.CheckNBFrame(glfwGetTime());
 
 		WriteGpuLog();
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Frame End, Frame Start)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Frame End, Frame Start)
 
 		if (change_mesh) {
 			change_mesh = 0;
@@ -1097,7 +1097,7 @@ int main(int argc, char** argv)
 		// Load the texture
 		if (acquireFrameFromVideo() < 0) break;
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "OpenCVEnd", 4);	// Diff(Frame Start, OpenCV call to make texture)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "OpenCVEnd", 4);	// Diff(Frame Start, OpenCV call to make texture)
 
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1111,12 +1111,12 @@ int main(int argc, char** argv)
 
 		bindingTextures();
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "BindWheels", 4);	// Diff(OpenCV call to make texture, bind texture)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "BindWheels", 4);	// Diff(OpenCV call to make texture, bind texture)
 
 		translateWheels();
 
 		WriteGpuLog();
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawWheels", 4);	// Diff(bind texture, draw wheels)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawWheels", 4);	// Diff(bind texture, draw wheels)
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -1130,7 +1130,7 @@ int main(int argc, char** argv)
         glDisable(GL_CULL_FACE);
 
 		WriteGpuLog();
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glBegin", 4);	// Diff(draw wheels, glBegin)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glBegin", 4);	// Diff(draw wheels, glBegin)
 
         glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -1143,7 +1143,7 @@ int main(int argc, char** argv)
         glEnd();
 
 		WriteGpuLog();
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glEnd", 4);  	// Diff(glBegin, glEnd)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glEnd", 4);  	// Diff(glBegin, glEnd)
 
         glMatrixMode(GL_PROJECTION);
         glMatrixMode(GL_MODELVIEW);
@@ -1154,7 +1154,7 @@ int main(int argc, char** argv)
 		// Swap buffers
 		glfwSwapBuffers(gGLFWWindow);
 
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "SwapBuffer", 4);	// Diff(glEnd, glSwapBuffers)
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "SwapBuffer", 4);	// Diff(glEnd, glSwapBuffers)
 
 		glfwPollEvents();
 		glDeleteTextures(1, &(gTextures[0]));

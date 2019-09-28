@@ -9,12 +9,24 @@
 // Work functions must NOT be of return-type void
 int app3_work1() {
 	fprintf(stderr, "Work1\n");
-	usleep(10000); // 10ms
+	usleep(10000);
 	return 0;
 }
 
 int app3_work2() {
 	fprintf(stderr, "Work2\n");
+	usleep(10000);
+	return 0;
+}
+
+int app3_work3() {
+	fprintf(stderr, "Work3\n");
+	usleep(10000);
+	return 0;
+}
+
+int app3_work4() {
+	fprintf(stderr, "Work4\n");
 	usleep(10000);
 	return 0;
 }
@@ -30,6 +42,8 @@ int main(int argc, char **argv) {
 	// decorate work functions
 	auto tagged_work1_ptr = frame_job_decorator(app3_work1, &fc, "app3_work1", false);
 	auto tagged_work2_ptr = frame_job_decorator(app3_work2, &fc, "app3_work2", false);
+    auto tagged_work3_ptr = frame_job_decorator(app3_work3, &fc, "app3_work3", false);
+	auto tagged_work4_ptr = frame_job_decorator(app3_work4, &fc, "app3_work4", false);
 	for (int i = 0; i < 100; i++)
 	{
 		fc.frame_start();
@@ -38,6 +52,8 @@ int main(int argc, char **argv) {
 
 			(*tagged_work1_ptr)();
 			(*tagged_work2_ptr)();
+            (*tagged_work3_ptr)();
+			(*tagged_work4_ptr)();
 		} catch (DroppedFrameException& e) {
 			// Can continue in the while loop, just skipping this frame due to
 			// recoverable abort of frame-jobs.

@@ -16,6 +16,9 @@
 #include <dirent.h>
 #include <unistd.h>
 
+#include "TimeLog.hpp"
+TimeLog timeLog;
+
 // Tagging
 #include <sys/types.h> // pid_t
 #include "tag_frame.h" // FrameController
@@ -739,6 +742,8 @@ int main(int argc, char** argv)
     auto tagged_work19_ptr = frame_job_decorator(gpu_hog_calculator_layer_19, &fc, "gpu_hog_calculator_layer_19", true);
     auto tagged_work20_ptr = frame_job_decorator(gpu_hog_calculator_layer_20, &fc, "gpu_hog_calculator_layer_20", true);*/
 
+    timeLog.CheckBeginTest();
+
     while(true)
     {
         fc.frame_start();
@@ -749,13 +754,13 @@ int main(int argc, char** argv)
         /* ***** START TIMING ***** */
 
         frame_ctr++;
-        if(frame_ctr == 10)
+        //if(frame_ctr == 10)
         {
             clock_gettime(CLOCK_MONOTONIC, &tp_now_10);
             diff_sec = tp_now_10.tv_sec - tp_start_10.tv_sec;
             diff_nsec = tp_now_10.tv_nsec - tp_start_10.tv_nsec;
             total_nsec = diff_sec * 1000000000 + diff_nsec;
-            fps = 10 / (total_nsec / 1000000000);
+            fps = 1 / (total_nsec / 1000000000);
             std::cout << "FPS: " << fps << std::endl;
             frame_ctr = 0;
             clock_gettime(CLOCK_MONOTONIC, &tp_start_10);
@@ -827,7 +832,7 @@ int main(int argc, char** argv)
         diff_sec = tpend.tv_sec - tpstart.tv_sec;
         diff_nsec = tpend.tv_nsec - tpstart.tv_nsec;
         total_nsec = diff_sec * 1000000000 + diff_nsec;
-        //if(frame_id > 50)
+        if(frame_id > 15)
         {
             if(total_nsec > max_time)
                 max_time = total_nsec;
@@ -835,6 +840,8 @@ int main(int argc, char** argv)
             num_f++;
         }
         /* ***** END TIMING ***** */
+
+        fc.frame_end();
 
         char cKey = waitKey(5);
         if ( cKey == 27) // ESC
@@ -848,7 +855,10 @@ int main(int argc, char** argv)
             }
         }
 
-        fc.frame_end();
+        if (FILE *file = fopen("../stop_benchmark.txt", "r")) {
+            fclose(file);
+            break;
+        }
     }
     fc.print_exec_stats();
 

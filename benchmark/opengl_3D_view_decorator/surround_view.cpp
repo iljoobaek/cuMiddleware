@@ -36,7 +36,6 @@ using namespace glm;
 #include "objloader.hpp"
 
 //#include "GpuQuery.h"
-#include "GpuLog.hpp"
 #include "TimeLog.hpp"
 
 // Tagging
@@ -988,7 +987,7 @@ void translateWheels()
 int InitializeGpuLog()
 {
 //	gGpuQuery = new GpuQuery();
-	gGpuLog.Initialize();
+	//gGpuLog.Initialize();
 /*
 	if (gGpuQuery->InitializeQuery() == 0)
 	{
@@ -1085,7 +1084,7 @@ int main(int argc, char** argv)
 		timeLog.CheckFrame10();
 		timeLog.CheckNBFrame(glfwGetTime());
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Frame End, Frame Start)
 
 		if (change_mesh) {
@@ -1115,7 +1114,7 @@ int main(int argc, char** argv)
 
 		translateWheels();
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawWheels", 4);	// Diff(bind texture, draw wheels)
 
         glMatrixMode(GL_PROJECTION);
@@ -1129,7 +1128,7 @@ int main(int argc, char** argv)
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glBegin", 4);	// Diff(draw wheels, glBegin)
 
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -1142,7 +1141,7 @@ int main(int argc, char** argv)
         glVertex2f(0.0,200.0);
         glEnd();
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glEnd", 4);  	// Diff(glBegin, glEnd)
 
         glMatrixMode(GL_PROJECTION);
@@ -1162,14 +1161,13 @@ int main(int argc, char** argv)
 		glDeleteTextures(1, &(gTextures[2]));
 		glDeleteTextures(1, &(gTextures[3]));
 
-		WriteGpuLog();
-		gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "End", 4);	// Diff(glSwapBuffers, Frame End)
-
-		timeLog.CheckFrameEndTime();
+		//WriteGpuLog();
+		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "End", 4);	// Diff(glSwapBuffers, Frame End)
 
 		// taggin - frame FrameController
 		fc.frame_end();
-
+        
+        timeLog.CheckFrameEndTime();
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(gGLFWWindow, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(gGLFWWindow) == 0 );

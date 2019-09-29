@@ -18,7 +18,7 @@ from vision.nn_profile import Profiler
 #PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
 #TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
 PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
-TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 154) ]
+TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 254) ]
 
 parse = argparse.ArgumentParser("Run an SSD with or without tagging")
 parse.add_argument("--net", dest="net", default='mb1-ssd', choices=['mb1-ssd', 'vgg16-ssd'])
@@ -100,6 +100,8 @@ enable_prof = False
 prof = Profiler(predictor.net.base_net, enabled=enable_prof)
 
 timer = Timer()
+tot_exe = 0.
+max_exe = 0.
 tot_fps = 0.
 min_fps =100
 frm_cnt = 0
@@ -107,7 +109,7 @@ tenth_flag = 10
 autograd_prof_flag = False
 
 def frame_work(image_path):
-    global timer, tot_fps, min_fps, frm_cnt, tenth_flag, autograd_prof_flag
+    global timer, tot_exe, max_exe, tot_fps, min_fps, frm_cnt, tenth_flag, autograd_prof_flag
     timer.start()
     tenth_flag -= 1
     orig_image = cv2.imread(image_path, cv2.IMREAD_COLOR)
@@ -127,12 +129,15 @@ def frame_work(image_path):
     # Keep track of average FPS
     interval = timer.end()
     frame_fps = 1.0 / interval;
-    tot_fps += frame_fps
     frm_cnt+=1
     if frm_cnt > 15:  # ignore first a few frame result
+        tot_fps += frame_fps
+        tot_exe += interval
         if frame_fps < min_fps:
             min_fps = frame_fps
-    #print('Time: {:.8f}s, FPS: {:.2f}, Detect Objects: {:d}.'.format(interval, frame_fps, labels.size(0)))
+        if interval > max_exe:
+            max_exe = interval
+        print('FPS: {:.2f}'.format(frame_fps))
     for i in range(boxes.size(0)):
         box = boxes[i, :]
         label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
@@ -153,6 +158,14 @@ for image_path in TEST_IMAGE_PATHS:
     else:
         orig_image = frame_work(image_path)
     cv2.imshow('SSD (PyTorch) annotated', orig_image)
+
+    if frm_cnt == 2: # to sync and run with other applications
+        while True :
+            print("PyTorch demo is ready to go and will begin soon..");
+            if os.path.exists('../run_benchmark.txt') :
+                break;
+            cv2.waitKey(1);
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
@@ -161,8 +174,11 @@ if tagging_enabled:
     fc.print_exec_stats()
 
 cv2.destroyAllWindows()
-print('-'*60+'\nAvg FPS: {:.2f}'.format(tot_fps / len(TEST_IMAGE_PATHS)))
-print('Worst FPS: {:.2f}'.format(min_fps))
+print('-'*60+'\n')
+print('Avg : {:.2f} ms {:.2f} fps'.format( tot_exe*1000/ (frm_cnt-15) ,(tot_fps / (frm_cnt-15))))
+print('Worst : {:.2f} ms {:.2f} fps'.format( max_exe*1000 ,min_fps))
 if tenth_flag < 0 and enable_prof:
     print("Profiling results:")
     print(prof)
+
+open("../stop_benchmark.txt","w+")

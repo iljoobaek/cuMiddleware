@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include <stdlib.h>
 using namespace std;
 
 #include "TimeLog.hpp"
@@ -46,8 +47,6 @@ void TimeLog::CheckEndTest()
 
 void TimeLog::Initialize(float paramTime)
 {
-    CheckBeginTest();
-
 	mTimeSum = 0.0f;
 	mTimeMax = 0.0f;
 
@@ -92,11 +91,14 @@ void TimeLog::CheckFrameEndTime()
 
 void TimeLog::CheckFrame10()
 {
-	mFrameCount++;
+	//mFrameCount++;
+
+    if (mFrameID == 1)
+        CheckBeginTest();
 
     //if(mFrameCount == 10)
     {
-        mFrameCount = 0;
+        //mFrameCount = 0;
 
         clock_gettime(CLOCK_MONOTONIC, &mNow10);
 

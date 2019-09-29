@@ -15,7 +15,7 @@ TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lcarss -lpthread -lrt
 
 # Main application with Tagging
 hogdetector : main.cpp
-	$(CXX) $(CFLAGS) $(CPP_FLAGS) $(MIDFLAGS) main.cpp -o hog -I$(INCLUDES_OPENCV) $(OPENCV_LDFLAGS) -I$(INCLUDES_TAG) $(TAG_LDFLAGS)
+	$(CXX) $(CFLAGS) $(CPP_FLAGS) $(MIDFLAGS) main.cpp ../common/TimeLog.cpp -o hog -I../common -I$(INCLUDES_OPENCV) $(OPENCV_LDFLAGS) -I$(INCLUDES_TAG) $(TAG_LDFLAGS)
 
 clean:
 	rm -f *~ hog *.o

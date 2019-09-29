@@ -229,10 +229,10 @@ class ObjectDetector(object):
 
 if __name__ == '__main__':
     # If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
-    PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
-    TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
-    #PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
-    #TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 154) ]
+    #PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
+    #TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
+    PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
+    TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 254) ]
 
     parse = argparse.ArgumentParser("Run an SSD with or without tagging")
     parse.add_argument("--fps", dest="fps", default=-1, help="Enable fps control with tagging at desired fps [default -1, disabled]")
@@ -255,8 +255,8 @@ if __name__ == '__main__':
     #######
     # To enable frame-job tagging of SSD Tensorflow's Session.run() function
     if tagging_enabled:
-        sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
-        #sys.path.append("/home/iljoo/cuMiddleware_work/cuMiddleware/python")
+        #sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
+        sys.path.append("/home/iljoo/cuMiddleware_work/cuMiddleware/python")
         import tag_layer_fps
         allow_frame_drop = False
         fc = tag_layer_fps.FrameController("Tensorflow 1.0 SSD", fps, allow_frame_drop)
@@ -282,8 +282,8 @@ if __name__ == '__main__':
     for imgpath in TEST_IMAGE_PATHS:
         if tagging_enabled:
             fc.frame_start()
-        else:
-            start = time.perf_counter()
+        #else:
+        start = time.perf_counter()
 
         img = cv2.imread(imgpath, cv2.IMREAD_COLOR)
         #crop ROI
@@ -307,24 +307,32 @@ if __name__ == '__main__':
 
         if tagging_enabled:
             fc.frame_end()
-        else:
-            # Save frame duration
-            frm_cnt+=1
-            if frm_cnt > 15:  # ignore first a few frame result
-                end = time.perf_counter()
-                #print("Duration of frame: %12.10f" % (end-start))
-                drn = (end - start)
-                drn_l.append(drn)
+        #else:
+        # Save frame duration
+        frm_cnt+=1
+        if frm_cnt > 15:  # ignore first a few frame result
+            end = time.perf_counter()
+            drn = (end - start)
+            drn_l.append(drn)
+            print('FPS: {:.2f}'.format(1/drn))
+
         cv2.imshow("TF demo output", vis_img)
+        if frm_cnt == 2: # to sync and run with other applications
+            while True :
+                print("Tensorflow demo is ready to go and will begin soon..");
+                if os.path.exists('../run_benchmark.txt') :
+                    break;
+                cv2.waitKey(1);
         cv2.waitKey(1)  # Non-blocking form
 
     # Print summary of execution stats
     if tagging_enabled:
         fc.print_exec_stats()
-    else:
+    #else:
         print("Demo execution stats over %d frames:" % len(drn_l))
         print("Min: %s [s], Avg: %s [s]" % (min(drn_l), sum(drn_l)/float(len(drn_l))))
         worst_ms = 1000*max(drn_l)
         avg_ms = 1000*(sum(drn_l)/float(len(drn_l)))
-        print('-'*60+'\nAvg FPS: {:.2f}'.format(1000/avg_ms))
-        print('Worst FPS: {:.2f}'.format(1000/worst_ms))
+        print('-'*60+'\n')
+        print('Avg : {:.2f} ms {:.2f} fps'.format( 1000*sum(drn_l)/float(len(drn_l)), 1000/avg_ms))
+        print('Worst : {:.2f} ms {:.2f} fps'.format( 1000*max(drn_l), 1000/worst_ms))

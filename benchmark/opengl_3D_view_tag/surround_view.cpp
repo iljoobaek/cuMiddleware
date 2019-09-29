@@ -36,7 +36,7 @@ using namespace glm;
 #include "objloader.hpp"
 
 //#include "GpuQuery.h"
-#include "GpuLog.hpp"
+//#include "GpuLog.hpp"
 #include "TimeLog.hpp"
 
 // Tagging
@@ -905,7 +905,7 @@ int main(int argc, char** argv)
 		timeLog.CheckNBFrame(glfwGetTime());
 
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Frame End, Frame Start)
 
 		if (change_mesh) {
@@ -941,7 +941,7 @@ int main(int argc, char** argv)
 
 		translateWheels();
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawWheels", 4);	// Diff(bind texture, draw wheels)
 
         glMatrixMode(GL_PROJECTION);
@@ -963,7 +963,7 @@ int main(int argc, char** argv)
         const char *task_3_name = "opengl_glBegin";
         tag_job_begin(pid, tid, task_3_name, 14L, false, true, 0);
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glBegin", 4);	// Diff(draw wheels, glBegin)
 
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -976,7 +976,7 @@ int main(int argc, char** argv)
         glVertex2f(0.0,200.0);
         glEnd();
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glEnd", 4);  	// Diff(glBegin, glEnd)
 
         // Tag_end /////////////////////////////////////////////////////////////////////////
@@ -1004,7 +1004,7 @@ int main(int argc, char** argv)
 		glDeleteTextures(1, &(gTextures[2]));
 		glDeleteTextures(1, &(gTextures[3]));
 
-		WriteGpuLog();
+		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "End", 4);	// Diff(glSwapBuffers, Frame End)
 
         // Tag_end /////////////////////////////////////////////////////////////////////////

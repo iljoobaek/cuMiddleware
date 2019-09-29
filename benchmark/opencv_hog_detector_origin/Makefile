@@ -8,7 +8,7 @@ OPENCV_LDFLAGS= -L$(LIB_PATH_OPENCV) -lopencv_core -lopencv_flann -lopencv_imgpr
 
 # Main application
 hogdetector : main.cpp
-	$(CXX) $(CFLAGS) main.cpp -o hog -I$(INCLUDES_OPENCV) $(OPENCV_LDFLAGS)
+	$(CXX) $(CFLAGS) main.cpp ../common/TimeLog.cpp -o hog -I../common -I$(INCLUDES_OPENCV) $(OPENCV_LDFLAGS)
 
 clean:
 	rm -f *~ hog *.o

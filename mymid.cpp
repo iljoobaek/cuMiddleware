@@ -65,6 +65,9 @@ struct CompareJobPtr {
 static uint64_t max_gpu_memory_available; // In B
 static uint64_t gpu_memory_available;	// In Bytes
 static bool use_slack;					// static flag set by cmdline args
+static bool use_deadline;				// static flag set by cmdline args
+static bool use_period;					// static flag set by cmdline args
+static bool use_fifo;					// static flag set by cmdline args
 
 // Initialize job priority queue - FIFO policy is default
 static std::priority_queue<job_t *,\
@@ -279,20 +282,26 @@ int main(int argc, char **argv)
 	const char *usage = "Usage: ./mid --policy [rms, edf, lsf, fifo]";
 	CompareJobFunc cmp_fn;
 	use_slack = false;
+	use_deadline = false;
+	use_fifo = false;
+	use_period = false;
 	if (argc == 3) {
 		if (strcmp(argv[1], "--policy") == 0) {
 			if ( (strcmp(argv[2], "rms") == 0) ) {
 				fprintf(stdout, "Using RMS scheduler...\n");
+				use_period = true;
 				cmp_fn = &CompareJobPeriod;
 			} else if (strcmp(argv[2], "edf") == 0) {
 				fprintf(stdout, "Using EDF scheduler...\n");
+				use_deadline = true;
 				cmp_fn = &CompareJobDeadline;
 			} else if (strcmp(argv[2], "lsf") == 0) {
 				fprintf(stdout, "Using LSF scheduler...\n");
-				cmp_fn = &CompareJobSlack;
 				use_slack = true;
+				cmp_fn = &CompareJobSlack;
 			} else if (strcmp(argv[2], "fifo") == 0) {
 				fprintf(stdout, "Using FIFO scheduler...\n");
+				use_fifo = true;
 				cmp_fn = &CompareJobFIFO;
 			} else {
 				fprintf(stderr, "%s\n", usage);
@@ -352,7 +361,9 @@ int main(int argc, char **argv)
 				// Assign monotonic jobid to queued job - careful of overflow
 				// TODO: use external counter file
 				q_job->jobid = jobc++;
-				if (q_job->noslack_flag) {
+				if ((use_slack || use_deadline) && q_job->noslack_flag) {
+					// Use fifo queue if need slack or deadline but first time
+					// running job
 					fifo_jobs.push(q_job);
 				} else {
 					if (use_slack && rel_priority_period_count) {

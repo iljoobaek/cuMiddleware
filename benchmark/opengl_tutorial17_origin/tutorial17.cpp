@@ -278,8 +278,6 @@ int main( void )
 		return -1;
 	}
 
- 	timeLog.Initialize(glfwGetTime());
-
 	// Initialize the GUI
 	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Preparation", 4);	// Diff(Program Start, Preparation)
 
@@ -400,11 +398,20 @@ int main( void )
 	double lastFrameTime = lastTime;
 	int nbFrames = 0;
 
+    timeLog.Initialize(glfwGetTime());
+
 	do{
         double currentTime = glfwGetTime();
 		gDeltaTime = (float)(currentTime - lastFrameTime);
 		lastFrameTime = currentTime;
 		nbFrames++;
+        if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1sec ago
+			// printf and reset
+            printf("%f ms/frame\n", 1000.0/double(nbFrames));
+			//printf("%f frames/sec\n", double(nbFrames));
+			nbFrames = 0;
+			lastTime += 1.0;
+		}
 
 		timeLog.CheckFrameStartTime();
 		timeLog.CheckFrame10();

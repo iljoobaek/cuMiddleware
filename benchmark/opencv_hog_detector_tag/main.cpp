@@ -125,7 +125,7 @@ int main(int argc, char** argv)
     vector<float> descriptorsValues;
 
     cout<<"Started"<<endl;
-    VideoCapture cap("../data/forbes_1920_1208_0.mp4");
+    VideoCapture cap("../data/forbes_1920_1208_0_.mp4");
 
     // To meausure fps performance
     sum_time = 0;
@@ -134,6 +134,9 @@ int main(int argc, char** argv)
     int frame_id = 0;
 
     timeLog.CheckBeginTest();
+
+    int64_t frame_period_us = 500;
+	int64_t deadline_us = 500;
 
     while(true)
     {
@@ -176,7 +179,8 @@ int main(int argc, char** argv)
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *job_1_name = "gpu_hog_calculator_1";
-        tag_job_begin(pid, tid, job_1_name, 14L, false, true, 0);
+        tag_job_begin(pid, tid, job_1_name, frame_period_us, deadline_us,
+        14L, false, true, 1UL);
 
         gpu_hog_calculator_1(image_roi);
 
@@ -187,7 +191,8 @@ int main(int argc, char** argv)
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *job_2_name = "gpu_hog_calculator_2";
-        tag_job_begin(pid, tid, job_2_name, 14L, false, true, 0);
+        tag_job_begin(pid, tid, job_2_name, frame_period_us, deadline_us,
+        14L, false, true, 1UL);
 
         gpu_hog_calculator_2(image_roi);
 

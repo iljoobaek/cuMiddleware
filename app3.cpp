@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 	pid_t tid = gettid();
 	const char *frame_name = "app3";
 
-	FrameController fc(frame_name, 10, false);
+	FrameController fc(frame_name, 7, false);
 
 	// decorate work functions
 	auto tagged_work1_ptr = frame_job_decorator(app3_work1, &fc, "app3_work1", false);

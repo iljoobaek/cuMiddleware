@@ -25,7 +25,7 @@ void TimeLog::CheckBeginTest()
             break;
         }
         else {
-            cout << "Create run_benchmark.txt in benchmark folder to begin.." << endl;
+            //cout << "." << endl;
             usleep(100000);
         }
     }

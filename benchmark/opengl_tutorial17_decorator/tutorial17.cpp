@@ -414,7 +414,7 @@ int main( void )
 
     // tagging - decorator
     const char *frame_name = "opengl_tutorial17";
-	FrameController fc(frame_name, 60, false);
+	FrameController fc(frame_name, 7, false);
 
     // decorate work functions
 	auto tagged_work1_ptr = frame_job_decorator(GpuBuffer, &fc, "GpuBuffer", true);

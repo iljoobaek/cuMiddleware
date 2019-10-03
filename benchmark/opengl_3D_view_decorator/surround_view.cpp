@@ -572,7 +572,7 @@ int ConvertIplToTexturePX2_12(IplImage *image)
 
 // tagging - framecontroller
 const char *frame_name = "opengl_load_texture";
-FrameController fc(frame_name, 20, false);
+FrameController fc(frame_name, 13, false);
 
 // decorate work functions
 auto tagged_work1_ptr = frame_job_decorator(ConvertIplToTexturePX2_1, &fc, "ConvertIplToTexturePX2_1", false);
@@ -1166,7 +1166,7 @@ int main(int argc, char** argv)
 
 		// taggin - frame FrameController
 		fc.frame_end();
-        
+
         timeLog.CheckFrameEndTime();
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(gGLFWWindow, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&

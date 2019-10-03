@@ -316,7 +316,7 @@ if __name__ == '__main__':
             drn_l.append(drn)
             print('FPS: {:.2f}'.format(1/drn))
 
-        cv2.imshow("TF demo output", vis_img)
+        #cv2.imshow("TF demo output", vis_img)
         if frm_cnt == 2: # to sync and run with other applications
             while True :
                 print("Tensorflow demo is ready to go and will begin soon..");
@@ -329,10 +329,10 @@ if __name__ == '__main__':
     if tagging_enabled:
         fc.print_exec_stats()
     #else:
-        print("Demo execution stats over %d frames:" % len(drn_l))
-        print("Min: %s [s], Avg: %s [s]" % (min(drn_l), sum(drn_l)/float(len(drn_l))))
-        worst_ms = 1000*max(drn_l)
-        avg_ms = 1000*(sum(drn_l)/float(len(drn_l)))
-        print('-'*60+'\n')
-        print('Avg : {:.2f} ms {:.2f} fps'.format( 1000*sum(drn_l)/float(len(drn_l)), 1000/avg_ms))
-        print('Worst : {:.2f} ms {:.2f} fps'.format( 1000*max(drn_l), 1000/worst_ms))
+    print("Demo execution stats over %d frames:" % len(drn_l))
+    print("Min: %s [s], Avg: %s [s]" % (min(drn_l), sum(drn_l)/float(len(drn_l))))
+    worst_ms = 1000*max(drn_l)
+    avg_ms = 1000*(sum(drn_l)/float(len(drn_l)))
+    print('-'*60+'\n')
+    print('Avg : {:.2f} ms {:.2f} fps'.format( 1000*sum(drn_l)/float(len(drn_l)), 1000/avg_ms))
+    print('Worst : {:.2f} ms {:.2f} fps'.format( 1000*max(drn_l), 1000/worst_ms))

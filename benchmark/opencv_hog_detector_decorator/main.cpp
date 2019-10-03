@@ -706,7 +706,7 @@ int main(int argc, char** argv)
     vector<float> descriptorsValues;
 
     cout<<"Started"<<endl;
-    VideoCapture cap("../data/forbes_1920_1208_0.mp4");
+    VideoCapture cap("../data/forbes_1920_1208_0_.mp4");
 
     // To meausure fps performance
     sum_time = 0;
@@ -714,9 +714,23 @@ int main(int argc, char** argv)
     clock_gettime(CLOCK_MONOTONIC, &tpstart);
     int frame_id = 0;
 
+    /**********************************************************************/
+    // To handle user input
+    int desired_fps = 0;
+    if (argc > 1) {
+        desired_fps = atoi(argv[1]);
+        //other parameters will be parsed in other function
+        printf("Desired FPS %d\n", desired_fps);
+    }
+    else {
+        printf("<usage>: ./xxxx <desired fps>\n");
+        return -1;
+    }
+    /**********************************************************************/
+
     // tagging - decorator
     const char *frame_name = "opencv_hog_calculator";
-	FrameController fc(frame_name, 15, false);
+	FrameController fc(frame_name, desired_fps, false);
 
     // decorate work functions
 	auto tagged_work1_ptr = frame_job_decorator(gpu_hog_calculator_1, &fc, "gpu_hog_calculator_1", true);

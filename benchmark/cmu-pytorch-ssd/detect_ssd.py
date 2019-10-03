@@ -157,11 +157,11 @@ for image_path in TEST_IMAGE_PATHS:
             orig_image = frame_work(image_path)
     else:
         orig_image = frame_work(image_path)
-    cv2.imshow('SSD (PyTorch) annotated', orig_image)
+    #cv2.imshow('SSD (PyTorch) annotated', orig_image)
 
     if frm_cnt == 2: # to sync and run with other applications
+        print("PyTorch demo is ready to go and please create run_benchmark.txt file");
         while True :
-            print("PyTorch demo is ready to go and will begin soon..");
             if os.path.exists('../run_benchmark.txt') :
                 break;
             cv2.waitKey(1);

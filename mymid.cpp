@@ -32,22 +32,32 @@
 	(s < (int64_t)CURR_SLACKTIME_PQ_EMPTY_OFFSET + SLACKTIME_THRESHOLD)
 
 /* Define comparison functor to pass to priorityqueue template parameter */
+// NOTE: returns "true" when j2 has "higher priority" than j1
 typedef bool(*CompareJobFunc)(job_t *&j1, job_t *&j2);
 
 /* One job is higher priority than another if its slacktime is <= to others */
 bool CompareJobSlack(job_t *&j1, job_t *&j2) {
+	fprintf(stdout, "cmpJobSlack: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->slacktime_us, j2->job_name, j2->slacktime_us, j2->slacktime_us <= j1->slacktime_us);
 	return j2->slacktime_us <= j1->slacktime_us;
 }
-/* One job is higher priority than another if its period is <= to others */
+/* One job is higher priority than another if its period is < to others,
+ * Note: in case of ties, lower jobid takes higher priority
+ */
 bool CompareJobPeriod(job_t *&j1, job_t *&j2) {
-	return j2->frame_period_us <= j1->frame_period_us;
+	fprintf(stdout, "cmpJobPeriod: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->frame_period_us, j2->job_name, j2->frame_period_us, j2->frame_period_us <= j1->frame_period_us);
+	if (j2->frame_period_us == j1->frame_period_us) {
+		return j2->jobid < j1->jobid;
+	}
+	return j2->frame_period_us < j1->frame_period_us;
 }
 /* One job is higher priority than another if its deadline is <= to others */
 bool CompareJobDeadline(job_t *&j1, job_t *&j2) {
+	fprintf(stdout, "cmpJobDeadline: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->deadline_us, j2->job_name, j2->deadline_us, j2->deadline_us <= j1->deadline_us);
 	return j2->deadline_us <= j1->deadline_us;
 }
 /* One job is higher priority than another if its jobid is <= to others */
 bool CompareJobFIFO(job_t *&j1, job_t *&j2) {
+	fprintf(stdout, "cmpJobFIFO: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->jobid, j2->job_name, j2->jobid, j2->jobid <= j1->jobid);
 	return j2->jobid <= j1->jobid;
 }
 

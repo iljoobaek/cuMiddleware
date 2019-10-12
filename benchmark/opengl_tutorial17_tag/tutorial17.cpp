@@ -83,6 +83,8 @@ glm::mat4 gViewMatrix;
 
 //GpuLog gGpuLog;
 TimeLog timeLog;
+int64_t frame_period_us = 500;
+int64_t deadline_us = 500;
 
 void GpuBuffer()
 {
@@ -425,7 +427,7 @@ int main( void )
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_1_name = "glGpuBuffer";
-        tag_job_begin(pid, tid, task_1_name, 14L, false, true, 0);
+        tag_job_begin(pid, tid, task_1_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
 
         //gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "Start", 4);	// Diff(Buffer Initialization, Start Frame)
         GpuBuffer();
@@ -437,7 +439,7 @@ int main( void )
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_2_name = "glDraw";
-        tag_job_begin(pid, tid, task_2_name, 14L, false, true, 0);
+        tag_job_begin(pid, tid, task_2_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
 
             DrawEulerRotation();
             //gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawEuler", 4);	// Diff(GL Buffer Setup, Draw Half)
@@ -450,7 +452,7 @@ int main( void )
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_3_name = "glDrawUI";
-        tag_job_begin(pid, tid, task_3_name, 14L, false, true, 0);
+        tag_job_begin(pid, tid, task_3_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
 
             DrawUI();
             //gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "DrawUI", 4);	// Diff(Draw Full, Draw UI)
@@ -461,7 +463,7 @@ int main( void )
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_4_name = "glSwapFrameBuffer";
-        tag_job_begin(pid, tid, task_4_name, 14L, false, true, 0);
+        tag_job_begin(pid, tid, task_4_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
 
             SwapFrameBuffer();
             //gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "SwapFrameBuffer", 4);	// Diff(Draw Full, Swap and End of Frame)

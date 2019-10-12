@@ -180,7 +180,7 @@ int main(int argc, char** argv)
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *job_1_name = "gpu_hog_calculator_1";
         tag_job_begin(pid, tid, job_1_name, frame_period_us, deadline_us,
-        14L, false, true, 1UL);
+        14L, false, false, 1UL);
 
         gpu_hog_calculator_1(image_roi);
 
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *job_2_name = "gpu_hog_calculator_2";
         tag_job_begin(pid, tid, job_2_name, frame_period_us, deadline_us,
-        14L, false, true, 1UL);
+        14L, false, false, 1UL);
 
         gpu_hog_calculator_2(image_roi);
 

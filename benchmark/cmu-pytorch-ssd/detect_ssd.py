@@ -92,7 +92,7 @@ if tagging_enabled:
     net = predictor.net
     allow_frame_drop = False
     fc = tag_layer_fps.FrameController("Pytorch SSD", fps, allow_frame_drop)
-    tag_layer_fps.tag_pt_module_layers_at_depth(net, fc, True, 1)
+    tag_layer_fps.tag_pt_module_layers_at_depth(net, fc, True, 0)
 ######
 
 # Set up layer-level profiling

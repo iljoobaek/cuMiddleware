@@ -413,7 +413,7 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 
     // Tagging begin ///////////////////////////////////////////////////////////////////
     const char *task_1_name = "glGenTextures";
-    tag_job_begin(pid, tid, task_1_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
+    tag_job_begin(pid, tid, task_1_name, frame_period_us, deadline_us, 14L, false, true, 1UL);
 
 	glGenTextures(1,&texture);
 	glBindTexture(GL_TEXTURE_2D,texture);
@@ -425,7 +425,7 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 
     // Tagging begin ///////////////////////////////////////////////////////////////////
     const char *task_2_name = "glTexImage2D";
-    tag_job_begin(pid, tid, task_2_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
+    tag_job_begin(pid, tid, task_2_name, frame_period_us, deadline_us, 14L, false, true, 1UL);
 
 	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureBuffer", 4);	// Timediff (prepare texture buffer)
 
@@ -441,7 +441,7 @@ GLuint ConvertIplToTexturePX2(IplImage *image)
 
     // Tagging begin ///////////////////////////////////////////////////////////////////
     const char *task_3_name = "glGenerateMipmap";
-    tag_job_begin(pid, tid, task_3_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
+    tag_job_begin(pid, tid, task_3_name, frame_period_us, deadline_us, 14L, false, true, 1UL);
 
 	//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "TextureConversion", 4);	// Timediff (frame to texture conversion)
 
@@ -925,7 +925,7 @@ int main(int argc, char** argv)
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_2_name = "opengl_draw";
-        tag_job_begin(pid, tid, task_2_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
+        tag_job_begin(pid, tid, task_2_name, frame_period_us, deadline_us, 14L, false, true, 1UL);
 
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -963,7 +963,7 @@ int main(int argc, char** argv)
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_3_name = "opengl_glBegin";
-        tag_job_begin(pid, tid, task_3_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
+        tag_job_begin(pid, tid, task_3_name, frame_period_us, deadline_us, 14L, false, true, 1UL);
 
 		//WriteGpuLog();
 		//gGpuLog.WriteLogs(timeLog.GetTimeDiff(), "glBegin", 4);	// Diff(draw wheels, glBegin)
@@ -987,7 +987,7 @@ int main(int argc, char** argv)
 
         // Tagging begin ///////////////////////////////////////////////////////////////////
         const char *task_4_name = "opengl_swapBuffer";
-        tag_job_begin(pid, tid, task_4_name, frame_period_us, deadline_us, 14L, false, false, 1UL);
+        tag_job_begin(pid, tid, task_4_name, frame_period_us, deadline_us, 14L, false, true, 1UL);
 
         glMatrixMode(GL_PROJECTION);
         glMatrixMode(GL_MODELVIEW);

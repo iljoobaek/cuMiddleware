@@ -10,6 +10,8 @@
 #include <fstream>
 using namespace std;
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 // Include GLEW
 #include <GL/glew.h>
 

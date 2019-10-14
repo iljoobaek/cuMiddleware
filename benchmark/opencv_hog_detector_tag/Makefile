@@ -9,8 +9,8 @@ OPENCV_LDFLAGS= -L$(LIB_PATH_OPENCV) -lopencv_core -lopencv_flann -lopencv_imgpr
 # Tagging
 CPP_FLAGS=-std=c++11
 MIDFLAGS=-Wall -g -Wl,--no-as-needed
-INCLUDES_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware/include
-LIB_PATH_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware/lib
+INCLUDES_TAG = ../../include
+LIB_PATH_TAG = ../../lib
 TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lcarss -lpthread -lrt
 
 # Main application with Tagging

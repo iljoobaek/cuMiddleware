@@ -17,7 +17,7 @@ from vision.nn_profile import Profiler
 # If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
 #PATH_TO_TEST_IMAGES_DIR = '/home/droid/Downloads/kitti_data'
 #TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:010d}.png'.format(i)) for i in range(0, 154) ]
-PATH_TO_TEST_IMAGES_DIR = '/home/iljoo/cuMiddleware_work/cuMiddleware_decorator/benchmark/data/kitti_data'
+PATH_TO_TEST_IMAGES_DIR = '/home/rtml/cuMiddleware/benchmark/data/kitti_data'
 TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, '{:06d}.png'.format(i)) for i in range(0, 354) ]
 
 parse = argparse.ArgumentParser("Run an SSD with or without tagging")
@@ -87,12 +87,12 @@ flops, params = flops_counter.get_model_complexity_info(predictor.net.base_net.c
 # To enable pytorch tagging of SSD Pytorch module
 if tagging_enabled:
     #sys.path.append("/home/droid/mhwork/cuMiddleware_v1/SourceCode/cu_wrapper/python")
-    sys.path.append("/home/iljoo/cuMiddleware_work/cuMiddleware/python")
+    sys.path.append("/home/rtml/cuMiddleware/python")
     import tag_layer_fps
     net = predictor.net
     allow_frame_drop = False
     fc = tag_layer_fps.FrameController("Pytorch SSD", fps, allow_frame_drop)
-    tag_layer_fps.tag_pt_module_layers_at_depth(net, fc, True, 1)
+    tag_layer_fps.tag_pt_module_layers_at_depth(net, fc, True, 0)
 ######
 
 # Set up layer-level profiling

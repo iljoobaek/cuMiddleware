@@ -15,8 +15,8 @@ LIBS=-lGL -lGLEW -lGLU -lGLEW -lglfw -lglut -lopencv_shape -lopencv_stitching -l
 # Tagging
 CPP_FLAGS=-std=c++11
 MIDFLAGS=-Wall -g -Wl,--no-as-needed
-INCLUDES_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware/include
-LIB_PATH_TAG = /home/iljoo/cuMiddleware_work/cuMiddleware/lib
+INCLUDES_TAG = ../../include
+LIB_PATH_TAG = ../../lib
 TAG_LDFLAGS = -L$(LIB_PATH_TAG) -lmid -lcarss -lpthread -lrt
 
 .PHONY = clean

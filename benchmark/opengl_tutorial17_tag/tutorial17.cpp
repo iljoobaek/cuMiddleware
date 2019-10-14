@@ -10,6 +10,8 @@
 #include <GLFW/glfw3.h>
 GLFWwindow* window;
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 // Include GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

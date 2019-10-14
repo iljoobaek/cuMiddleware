@@ -1,7 +1,7 @@
 CC = g++ -std=c++11
 
-INCLUDES_OPENCV = /home/iljoo/opencv_3.3.1/include/opencv
-LIB_PATH_OPENCV = /home/iljoo/opencv_3.3.1/lib
+INCLUDES_OPENCV = /usr/local/include
+LIB_PATH_OPENCV = /usr/local/lib
 
 CFLAGS = -Wall -I. -I../common -I/usr/local/cuda-10.0/include -I/usr/include/x86-64-linux-gnu/ -L$(LIB_PATH_OPENCV)
 LDFLAGS = -L. -L$(LIB_PATH_OPENCV)  -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/cuda-10.0/lib64/stubs

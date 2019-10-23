@@ -37,14 +37,14 @@ typedef bool(*CompareJobFunc)(job_t *&j1, job_t *&j2);
 
 /* One job is higher priority than another if its slacktime is <= to others */
 bool CompareJobSlack(job_t *&j1, job_t *&j2) {
-	fprintf(stdout, "cmpJobSlack: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->slacktime_us, j2->job_name, j2->slacktime_us, j2->slacktime_us <= j1->slacktime_us);
+	//fprintf(stdout, "cmpJobSlack: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->slacktime_us, j2->job_name, j2->slacktime_us, j2->slacktime_us <= j1->slacktime_us);
 	return j2->slacktime_us <= j1->slacktime_us;
 }
 /* One job is higher priority than another if its period is < to others,
  * Note: in case of ties, lower jobid takes higher priority
  */
 bool CompareJobPeriod(job_t *&j1, job_t *&j2) {
-	fprintf(stdout, "cmpJobPeriod: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->frame_period_us, j2->job_name, j2->frame_period_us, j2->frame_period_us <= j1->frame_period_us);
+	//fprintf(stdout, "cmpJobPeriod: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->frame_period_us, j2->job_name, j2->frame_period_us, j2->frame_period_us <= j1->frame_period_us);
 	if (j2->frame_period_us == j1->frame_period_us) {
 		return j2->jobid < j1->jobid;
 	}
@@ -52,18 +52,18 @@ bool CompareJobPeriod(job_t *&j1, job_t *&j2) {
 }
 /* One job is higher priority than another if its deadline is <= to others */
 bool CompareJobDeadline(job_t *&j1, job_t *&j2) {
-	fprintf(stdout, "cmpJobDeadline: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->deadline_us, j2->job_name, j2->deadline_us, j2->deadline_us <= j1->deadline_us);
+	//fprintf(stdout, "cmpJobDeadline: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->deadline_us, j2->job_name, j2->deadline_us, j2->deadline_us <= j1->deadline_us);
 	return j2->deadline_us <= j1->deadline_us;
 }
 /* One job is higher priority than another if its jobid is <= to others */
 bool CompareJobFIFO(job_t *&j1, job_t *&j2) {
-	fprintf(stdout, "cmpJobFIFO: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->jobid, j2->job_name, j2->jobid, j2->jobid <= j1->jobid);
+	//fprintf(stdout, "cmpJobFIFO: %s (%ld) vs. %s (%ld): %d\n", j1->job_name, j1->jobid, j2->job_name, j2->jobid, j2->jobid <= j1->jobid);
 	return j2->jobid <= j1->jobid;
 }
 
 struct CompareJobPtr {
 	job_t *lhs;
-	public: 
+	public:
 		CompareJobPtr(job_t *_lhs) : lhs(_lhs) {}
 		bool operator()(job_t *&rhs) {
 			return lhs->pid == rhs->pid \
@@ -188,7 +188,7 @@ void alloc_gpu_for_job(job_t *j) {
 /*
  * A job can acquire the gpu under the following conditions:
  * 1) Job's memory requirement fits on memory available for GPU
- * AND 
+ * AND
  * 2) job can appropriately share the GPU with other threads or pids
  * AND
  * 3) (if use_slace) job's slacktime below a threshold relative to server period
@@ -460,7 +460,7 @@ int main(int argc, char **argv)
 				executing_jobs.push_back(q_job);
 
 				// Wake client to trigger execution
-				fprintf(stdout, "\tJob (%s, pid=%d, tid=%d) can execute!\n", q_job->job_name, q_job->pid, q_job->tid);
+				//fprintf(stdout, "\tJob (%s, pid=%d, tid=%d) can execute!\n", q_job->job_name, q_job->pid, q_job->tid);
 				if (trigger_job(q_job) < 0) {
 					fprintf(stderr, "\tFailed to wake client!\n");
 				}
@@ -499,12 +499,12 @@ int main(int argc, char **argv)
 				executing_jobs.push_back(q_job);
 
 				// Wake client to trigger execution
-				fprintf(stdout, "\tJob (%s, pid=%d, tid=%d) can execute!\n", q_job->job_name, q_job->pid, q_job->tid);
+				//fprintf(stdout, "\tJob (%s, pid=%d, tid=%d) can execute!\n", q_job->job_name, q_job->pid, q_job->tid);
 				if (trigger_job(q_job) < 0) {
 					fprintf(stderr, "\tFailed to wake client!\n");
 				}
 			}
-			// Pop job off priority-queue 
+			// Pop job off priority-queue
 			pq_jobs.pop();
 
 			if (pq_jobs.size() == 0) {

@@ -108,24 +108,29 @@ frm_cnt = 0
 tenth_flag = 10
 autograd_prof_flag = False
 
-def frame_work(image_path):
-    global timer, tot_exe, max_exe, tot_fps, min_fps, frm_cnt, tenth_flag, autograd_prof_flag
+for image_path in TEST_IMAGE_PATHS:
     timer.start()
     tenth_flag -= 1
     orig_image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    image = orig_image.copy()
+    image_copy = orig_image.copy()
     if tenth_flag == 0 and enable_prof:
         if autograd_prof_flag:
             with torch.autograd.profiler.profile(use_cuda=True) as prof:
-                predictor.predict(image, 10, 0.4, ret_fps=True)
+                predictor.predict(image_copy, 10, 0.4, ret_fps=True)
         else:
             prof.set_enable(True)
-            predictor.predict(image, 10, 0.4, ret_fps=True)
+            predictor.predict(image_copy, 10, 0.4, ret_fps=True)
             prof.set_enable(False)
             print("Profiling results:")
             #print(prof)
 
-    boxes, labels, probs, fps = predictor.predict(image, 10, 0.4, ret_fps=True)
+    boxes, labels, probs, fps = (None, None, None, None)
+    if tagging_enabled:
+        # Encapsulate the GPU work with frame-rate control
+        with tag_layer_fps.FrameController.frame_context(fc) as frame:
+            boxes, labels, probs, fps = predictor.predict(image_copy, 10, 0.4, ret_fps=True)
+    else:
+        boxes, labels, probs, fps = predictor.predict(image_copy, 10, 0.4, ret_fps=True)
     # Keep track of average FPS
     interval = timer.end()
     frame_fps = 1.0 / interval;
@@ -149,14 +154,6 @@ def frame_work(image_path):
                     1,  # font scale
                     (255, 0, 255),
                     2)  # line type
-    return orig_image
-
-for image_path in TEST_IMAGE_PATHS:
-    if tagging_enabled:
-        with tag_layer_fps.FrameController.frame_context(fc) as frame:
-            orig_image = frame_work(image_path)
-    else:
-        orig_image = frame_work(image_path)
     #cv2.imshow('SSD (PyTorch) annotated', orig_image)
 
     if frm_cnt == 2: # to sync and run with other applications

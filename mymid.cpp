@@ -216,7 +216,8 @@ int job_acquire_gpu(job_t *j) {
 	}
 
 	bool should_run_now = false;
-	if (use_slack) {
+	// Priority queue jobs should be scheduled close to their deadline
+	if (use_slack || use_deadline || use_period) {
 		if (j->noslack_flag) {
 			should_run_now = true;
 		} else {
@@ -371,12 +372,13 @@ int main(int argc, char **argv)
 				// Assign monotonic jobid to queued job - careful of overflow
 				// TODO: use external counter file
 				q_job->jobid = jobc++;
-				if ((use_slack || use_deadline) && q_job->noslack_flag) {
-					// Use fifo queue if need slack or deadline but first time
+				if (q_job->noslack_flag) {
+					// Use fifo queue for all PQ jobs that don't have initialized slack
 					// running job
 					fifo_jobs.push(q_job);
 				} else {
-					if (use_slack && rel_priority_period_count) {
+					// All priority queue jobs must be aged
+					if (rel_priority_period_count) {
 						// Locally modify the relative priority of this job
 						// compared to older jobs on the pq
 						q_job->slacktime_us += rel_priority_period_count*SLEEP_MICROSECONDS;
@@ -469,8 +471,8 @@ int main(int argc, char **argv)
 			fifo_jobs.pop();
 		}
 
-		if (use_slack && pq_jobs.size()) {
-			// LSF-Priority queue is not empty, increment the rel_priority_period_count
+		if (pq_jobs.size()) {
+			// Priority queue is not empty, increment the rel_priority_period_count
 			rel_priority_period_count++;
 		}
 		/*
